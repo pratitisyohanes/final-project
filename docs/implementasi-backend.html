@@ -1,0 +1,927 @@
+<title>Implementasi Backend Booking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: dokumen teknis dua kolom, daftar isi lengket di kiri (desktop), satu kolom di ponsel */
+:root {
+  --bg: #f6f8f8;
+  --surface: #ffffff;
+  --fg: #182326;
+  --muted: #56666a;
+  --line: #d8e1e2;
+  --accent: #0d6b70;
+  --accent-soft: #e0f0f0;
+  --code-bg: #eef3f3;
+  --warn: #9a5b00;
+  --warn-soft: #fdf1dc;
+  --ok: #2c6e2f;
+  --ok-soft: #e3f2e1;
+  --danger: #b3261e;
+  --danger-soft: #fbe4e2;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1617; --surface: #151f21; --fg: #dde8e9; --muted: #93a6a9; --line: #29393c;
+    --accent: #5cc4c9; --accent-soft: #163538; --code-bg: #1a2729;
+    --warn: #f0b45a; --warn-soft: #33270f; --ok: #82cf86; --ok-soft: #17301a; --danger: #f28b82; --danger-soft: #3a1a18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1617; --surface: #151f21; --fg: #dde8e9; --muted: #93a6a9; --line: #29393c;
+  --accent: #5cc4c9; --accent-soft: #163538; --code-bg: #1a2729;
+  --warn: #f0b45a; --warn-soft: #33270f; --ok: #82cf86; --ok-soft: #17301a; --danger: #f28b82; --danger-soft: #3a1a18;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 80px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 48px; }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14.5px; max-height: calc(100vh - 48px); overflow-y: auto; }
+nav.toc .lbl { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+nav.toc a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; border-left: 2px solid transparent; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); background: var(--accent-soft); border-left-color: var(--accent); outline: none; }
+main { min-width: 0; }
+header.hero { padding-bottom: 24px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+h1 { font-family: var(--font-display); font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 8px 0 12px; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-size: 28px; line-height: 1.2; margin: 0 0 14px; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-size: 20px; margin: 28px 0 10px; }
+h4 { font-size: 16px; margin: 18px 0 6px; }
+section { padding-block: 40px 8px; scroll-margin-top: 16px; }
+section + section { border-top: 1px solid var(--line); }
+p, li { max-width: 74ch; }
+.lead { font-size: 19px; color: var(--muted); max-width: 68ch; margin: 0; }
+a { color: var(--accent); }
+code { font-family: var(--font-mono); font-size: .86em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre.code { font-family: var(--font-mono); font-size: 13.5px; line-height: 1.55; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 12px 0 18px; }
+pre.code code { background: none; padding: 0; font-size: inherit; }
+.cm { color: var(--muted); }
+.tbl { overflow-x: auto; margin: 12px 0 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--code-bg); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.m { font-family: var(--font-mono); font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+.GET { background: var(--ok-soft); color: var(--ok); }
+.POST { background: var(--accent-soft); color: var(--accent); }
+.PATCH { background: var(--warn-soft); color: var(--warn); }
+.DELETE { background: var(--danger-soft); color: var(--danger); }
+.pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.pass { background: var(--ok-soft); color: var(--ok); }
+.pill.new { background: var(--accent-soft); color: var(--accent); }
+.pill.edit { background: var(--warn-soft); color: var(--warn); }
+.note { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--surface); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+.note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+.note strong:first-child { display: block; margin-bottom: 2px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 20px 0 0; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.stat b { display: block; font-family: var(--font-display); font-size: 28px; line-height: 1.1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 14px; color: var(--muted); }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 14px 0 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+.card h4 { margin: 0 0 6px; color: var(--accent); }
+.card p, .card ul { margin: 0; font-size: 15px; }
+.card ul { padding-left: 18px; }
+.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0 20px; }
+ol.steps { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 0; counter-reset: s; }
+ol.steps > li { counter-increment: s; position: relative; padding: 0 0 22px 52px; max-width: none; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+ol.steps > li::after { content: ""; position: absolute; left: 16px; top: 38px; bottom: 4px; width: 2px; background: var(--line); }
+ol.steps > li:last-child::after { display: none; }
+ol.steps h4 { margin: 4px 0 4px; font-size: 17px; }
+ol.steps p { margin: 0 0 6px; }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 16px; padding-inline: 16px; }
+  nav.toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--surface); }
+  nav.toc ol { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Daftar isi">
+  <div class="lbl">Daftar isi</div>
+  <ol>
+    <li><a href="#ringkasan">1. Ringkasan</a></li>
+    <li><a href="#langkah">2. Step by step</a></li>
+    <li><a href="#struktur">3. Struktur folder</a></li>
+    <li><a href="#file-baru">4. File ditambahkan</a></li>
+    <li><a href="#file-edit">5. File diedit</a></li>
+    <li><a href="#mvc">6. Arsitektur MVC</a></li>
+    <li><a href="#erd">7. ERD &amp; data</a></li>
+    <li><a href="#pipeline">8. Pipeline</a></li>
+    <li><a href="#dfd">9. Data flow diagram</a></li>
+    <li><a href="#endpoint">10. Endpoint</a></li>
+    <li><a href="#aturan">11. Aturan bisnis</a></li>
+    <li><a href="#uji">12. Hasil pengujian</a></li>
+    <li><a href="#lanjut">13. Langkah berikutnya</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Final Project · Sistem Booking dan Manajemen Layanan</div>
+  <h1>Implementasi Backend Express.js</h1>
+  <p class="lead">Laporan penerapan rancangan backend: langkah pengerjaan, file yang dibuat dan diubah, pola MVC, ERD, pipeline request, data flow diagram, dan hasil pengujian. Kode, nama folder, pesan API, dan komentar memakai bahasa Inggris (komentar satu baris).</p>
+  <div class="note warn" style="margin-top:16px"><strong>Update: ORM sekarang Sequelize</strong>Dokumen ini ditulis saat backend memakai Prisma. Backend sudah dipindah ke Sequelize: model di <code>src/models/</code>, migration di <code>src/database/migrations/</code>, perintah <code>npm run db:migrate</code> dan <code>npm run db:seed</code>. Endpoint, aturan bisnis, ERD, dan DFD tetap sama. Detail perubahan ada di <a href="migrasi-prisma-ke-sequelize.html">migrasi-prisma-ke-sequelize.html</a>.</div>
+  <div class="stats">
+    <div class="stat"><b>8</b><span>modul fitur</span></div>
+    <div class="stat"><b>38</b><span>endpoint REST</span></div>
+    <div class="stat"><b>8</b><span>tabel database</span></div>
+    <div class="stat"><b>±2.900</b><span>baris JavaScript</span></div>
+    <div class="stat"><b>24/24</b><span>unit &amp; integration test lulus</span></div>
+    <div class="stat"><b>41/41</b><span>skenario end-to-end lulus</span></div>
+  </div>
+</header>
+
+<!-- 1 -->
+<section id="ringkasan">
+  <h2>1. Ringkasan implementasi</h2>
+  <p>Backend dibangun di folder <code>backend/</code> mengikuti dokumen <a href="perancangan-sistem-booking.html">perancangan-sistem-booking.html</a>. Semua poin backend di guideline sudah tercakup:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Poin guideline</th><th>Status</th><th>Di mana</th></tr></thead>
+    <tbody>
+      <tr><td>Authentication &amp; role-based authorization (Admin &amp; User)</td><td><span class="pill pass">Selesai</span></td><td><code>modules/auth</code>, <code>middlewares/authenticate.js</code>, <code>authorize.js</code></td></tr>
+      <tr><td>Database connection</td><td><span class="pill pass">Selesai</span></td><td><code>config/prisma.js</code>, <code>prisma/schema.prisma</code>, migration</td></tr>
+      <tr><td>CRUD produk/layanan + validasi &amp; error handling</td><td><span class="pill pass">Selesai</span></td><td><code>modules/categories</code>, <code>services</code>, <code>schedules</code>, <code>*.schema.js</code>, <code>errorHandler.js</code></td></tr>
+      <tr><td>Manajemen transaksi + validasi ketersediaan &amp; jadwal bentrok</td><td><span class="pill pass">Selesai</span></td><td><code>modules/bookings</code>, <code>payments</code></td></tr>
+      <tr><td>Filter, pencarian, pagination</td><td><span class="pill pass">Selesai</span></td><td><code>utils/pagination.js</code>, <code>utils/dateRange.js</code></td></tr>
+      <tr><td>Laporan (layanan terlaris, jadwal paling ramai)</td><td><span class="pill pass">Selesai</span></td><td><code>modules/reports</code></td></tr>
+      <tr><td>Dokumentasi API (Swagger)</td><td><span class="pill pass">Selesai</span></td><td><code>src/docs/openapi.js</code> → <code>/api/docs</code></td></tr>
+      <tr><td>Fitur tambahan: Dockerize, download laporan</td><td><span class="pill pass">Selesai</span></td><td><code>Dockerfile</code>, <code>docker-compose.yml</code>, <code>/reports/export</code></td></tr>
+      <tr><td>Fitur tambahan: caching, microservice</td><td>Belum</td><td>Disiapkan sebagai pengembangan lanjutan</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Perbedaan kecil dari rancangan awal</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Rancangan</th><th>Implementasi</th><th>Alasan</th></tr></thead>
+    <tbody>
+      <tr><td><code>start_time</code>/<code>end_time</code> bertipe <code>TIME</code></td><td><code>VARCHAR(5)</code> berformat <code>HH:mm</code></td><td>Prisma membaca kolom TIME sebagai tanggal 1970-01-01, yang membingungkan. String <code>HH:mm</code> bisa dibandingkan langsung (<code>"09:00" &lt; "10:30"</code>), sehingga query bentrok jadwal tetap sederhana.</td></tr>
+      <tr><td>bcrypt</td><td>bcryptjs</td><td>Versi JavaScript murni, tidak perlu kompilasi native di Windows. API-nya sama.</td></tr>
+      <tr><td>Redis cache</td><td>Belum dipasang</td><td>Opsional di guideline. Fokus ke fitur wajib terlebih dahulu.</td></tr>
+      <tr><td>Kolom <code>payments.method</code> wajib</td><td>Boleh kosong</td><td>Metode baru diketahui saat admin mencatat pembayaran.</td></tr>
+      <tr><td>—</td><td>Kolom <code>note</code> di <code>booking_status_logs</code></td><td>Menyimpan alasan pembatalan atau catatan admin.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 2 -->
+<section id="langkah">
+  <h2>2. Langkah pengerjaan step by step</h2>
+  <p>Urutan ini juga bisa dipakai untuk menjelaskan proses development saat presentasi.</p>
+  <ol class="steps">
+    <li><h4>Inisialisasi project</h4>
+      <p>Membuat folder <code>backend/</code>, <code>package.json</code> (CommonJS), lalu memasang dependency: express, @prisma/client, prisma, zod, jsonwebtoken, bcryptjs, helmet, cors, morgan, express-rate-limit, swagger-ui-express, dotenv. Dev dependency: jest, supertest, nodemon.</p>
+      <pre class="code"><code>mkdir backend &amp;&amp; cd backend
+npm init -y
+npm install express @prisma/client prisma zod jsonwebtoken bcryptjs helmet cors morgan express-rate-limit swagger-ui-express dotenv
+npm install -D jest supertest nodemon</code></pre></li>
+    <li><h4>Konfigurasi environment</h4>
+      <p><code>.env.example</code> berisi semua variabel. <code>src/config/env.js</code> memvalidasi variabel dengan Zod saat start: jika <code>DATABASE_URL</code> atau secret JWT kosong, server langsung berhenti dengan pesan jelas.</p></li>
+    <li><h4>Desain database dengan Prisma</h4>
+      <p>Menulis <code>prisma/schema.prisma</code>: 6 enum dan 8 model, lengkap dengan relasi, index, dan unique constraint. Nama kolom di database memakai snake_case (<code>@map</code>), sedangkan di kode camelCase.</p>
+      <pre class="code"><code>npx prisma validate
+npx prisma migrate dev --name init     <span class="cm"># membuat prisma/migrations/..._init/migration.sql</span></code></pre></li>
+    <li><h4>Utilitas bersama</h4>
+      <p>Membuat <code>ApiError</code>, <code>asyncHandler</code>, helper response, pagination, sort whitelist, helper waktu WIB (overlap, generate slot), date range (<code>today/this_week/this_month</code>), JWT, booking code, CSV, dan skema Zod umum.</p></li>
+    <li><h4>Middleware</h4>
+      <p><code>authenticate</code> (wajib token), <code>optionalAuthenticate</code> (untuk endpoint publik yang menampilkan data berbeda bagi admin), <code>authorize(...roles)</code>, <code>validate(schema)</code>, rate limiter, <code>notFound</code>, dan <code>errorHandler</code> global.</p></li>
+    <li><h4>Modul Auth</h4>
+      <p>Register, login, refresh token dengan rotasi (token lama langsung tidak berlaku), logout (mencabut refresh token), lihat dan ubah profil. Refresh token disimpan di DB dalam bentuk hash SHA-256.</p></li>
+    <li><h4>Modul CRUD master data</h4>
+      <p><code>categories</code> (slug otomatis, tidak bisa dihapus bila masih dipakai), <code>services</code> (search, filter kategori/status/harga, soft delete), dan <code>users</code> (admin mengelola pelanggan, menonaktifkan akun sekaligus mencabut semua sesi).</p></li>
+    <li><h4>Modul Schedules</h4>
+      <p>Membuat slot satu per satu atau bulk generate untuk rentang tanggal. <code>endTime</code> dihitung dari durasi layanan. Slot yang bentrok atau sudah lewat ditolak (atau dilewati saat bulk). Status <code>FULL</code>/<code>AVAILABLE</code> dihitung otomatis dari kuota.</p></li>
+    <li><h4>Modul Bookings &amp; Payments</h4>
+      <p>Booking dibuat di dalam transaksi dengan <code>SELECT … FOR UPDATE</code>. State machine status, pembatalan dengan batas 2 jam, pengembalian kuota slot, refund otomatis bila sudah dibayar, audit log setiap perubahan status, dan pencatatan pembayaran oleh admin.</p></li>
+    <li><h4>Modul Reports</h4>
+      <p>Ringkasan dashboard, layanan terlaris (Prisma <code>groupBy</code>), jadwal paling ramai (raw SQL <code>EXTRACT(ISODOW …)</code>), pendapatan per hari/bulan, dan export CSV.</p></li>
+    <li><h4>Wiring aplikasi &amp; dokumentasi</h4>
+      <p><code>routes/index.js</code> menggabungkan modul di <code>/api/v1</code>. <code>app.js</code> memasang helmet, cors, JSON parser, logger, Swagger UI, rate limiter, 404, dan error handler. <code>server.js</code> mengecek koneksi DB sebelum menerima request dan menangani shutdown dengan rapi.</p></li>
+    <li><h4>Seeder, Docker, test</h4>
+      <p><code>prisma/seed.js</code> membuat 1 admin, 2 pelanggan, 4 kategori, 6 layanan, slot 7 hari ke belakang sampai 14 hari ke depan, dan 11 contoh booking. <code>Dockerfile</code> dan <code>docker-compose.yml</code> menyediakan Postgres + API. Test Jest menguji utilitas dan pipeline middleware.</p></li>
+    <li><h4>Verifikasi</h4>
+      <p>Migration dijalankan ke PostgreSQL 17 sementara, seeder dijalankan, server dinyalakan, lalu 41 skenario end-to-end diuji lewat HTTP (lihat bagian 12).</p></li>
+  </ol>
+
+  <h3>Cara menjalankan di komputer Anda</h3>
+<pre class="code"><code>cd backend
+npm install
+<span class="cm"># edit .env: ganti DATABASE_URL dengan user/password PostgreSQL Anda</span>
+<span class="cm"># contoh: postgresql://postgres:PASSWORD_ANDA@localhost:5432/booking_db</span>
+createdb -U postgres booking_db          <span class="cm"># atau buat lewat pgAdmin</span>
+npm run db:migrate                       <span class="cm"># membuat 8 tabel (Sequelize)</span>
+npm run db:seed                          <span class="cm"># data demo</span>
+npm run dev                              <span class="cm"># http://localhost:5000, docs di /api/docs</span>
+npm test                                 <span class="cm"># unit + integration test</span></code></pre>
+  <div class="tbl"><table>
+    <thead><tr><th>Role</th><th>Email</th><th>Password</th></tr></thead>
+    <tbody>
+      <tr><td>Admin</td><td><code>admin@booking.com</code></td><td><code>Admin12345</code></td></tr>
+      <tr><td>Customer</td><td><code>budi@example.com</code></td><td><code>User12345</code></td></tr>
+      <tr><td>Customer</td><td><code>siti@example.com</code></td><td><code>User12345</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 3 -->
+<section id="struktur">
+  <h2>3. Struktur folder</h2>
+  <p>Struktur <em>feature-based</em>: setiap modul punya empat file dengan peran tetap, yaitu <code>routes → controller → service</code> plus <code>schema</code> untuk validasi.</p>
+<pre class="code"><code>fin-pro/
+├── docs/
+│   ├── Guideline Final Project FWD.docx
+│   ├── perancangan-sistem-booking.html
+│   └── implementasi-backend.html          <span class="cm"># dokumen ini</span>
+└── backend/
+    ├── .env.example · .env · .gitignore · .dockerignore
+    ├── Dockerfile · docker-compose.yml
+    ├── package.json · package-lock.json · README.md
+    ├── prisma/
+    │   ├── schema.prisma                  <span class="cm"># model data (M pada MVC)</span>
+    │   ├── seed.js
+    │   └── migrations/
+    │       ├── migration_lock.toml
+    │       └── 20261011000000_init/migration.sql
+    ├── src/
+    │   ├── server.js                      <span class="cm"># entry point</span>
+    │   ├── app.js                         <span class="cm"># express app + middleware global</span>
+    │   ├── config/      env.js · prisma.js
+    │   ├── docs/        openapi.js
+    │   ├── middlewares/ authenticate · authorize · validate · rateLimiter · notFound · errorHandler
+    │   ├── routes/      index.js
+    │   ├── modules/
+    │   │   ├── auth/        auth.routes · auth.controller · auth.service · auth.schema
+    │   │   ├── users/       users.routes · users.controller · users.service · users.schema
+    │   │   ├── categories/  categories.routes · .controller · .service · .schema
+    │   │   ├── services/    services.routes · .controller · .service · .schema
+    │   │   ├── schedules/   schedules.routes · .controller · .service · .schema
+    │   │   ├── bookings/    bookings.routes · .controller · .service · .schema · .rules
+    │   │   ├── payments/    payments.routes · .controller · .service · .schema
+    │   │   └── reports/     reports.routes · .controller · .service · .schema
+    │   └── utils/       ApiError · asyncHandler · response · pagination · time · dateRange
+    │                    jwt · bookingCode · slugify · csv · sanitizeUser · commonSchemas
+    └── tests/
+        ├── setup.js
+        ├── unit/        time · pagination · bookingRules · dateRange
+        └── integration/ app.test.js</code></pre>
+</section>
+
+<!-- 4 -->
+<section id="file-baru">
+  <h2>4. File yang ditambahkan</h2>
+  <p>Folder project sebelumnya hanya berisi <code>docs/</code>, jadi seluruh isi <code>backend/</code> adalah file baru. Totalnya 72 file di luar <code>node_modules</code>.</p>
+
+  <h3>Root backend &amp; konfigurasi</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>File</th><th>Fungsi</th></tr></thead>
+    <tbody>
+      <tr><td><code>package.json</code> / <code>package-lock.json</code></td><td>Dependency, script npm (dev, test, prisma:*, db:seed), konfigurasi Jest dan seed Prisma.</td></tr>
+      <tr><td><code>.env.example</code></td><td>Template variabel environment untuk di-commit.</td></tr>
+      <tr><td><code>.env</code></td><td>Salinan lokal dari <code>.env.example</code>. Tidak di-commit. Isi password DB Anda di sini.</td></tr>
+      <tr><td><code>.gitignore</code> / <code>.dockerignore</code></td><td>Mengecualikan <code>node_modules</code>, <code>.env</code>, log.</td></tr>
+      <tr><td><code>Dockerfile</code></td><td>Image Node 20 slim + OpenSSL. Menjalankan <code>prisma migrate deploy</code> lalu server.</td></tr>
+      <tr><td><code>docker-compose.yml</code></td><td>Service <code>db</code> (postgres:16, port host 5433) dan <code>api</code> (port 5000).</td></tr>
+      <tr><td><code>README.md</code></td><td>Cara menjalankan, akun demo, struktur, ringkasan ERD dan aturan bisnis (kebutuhan GitHub di guideline).</td></tr>
+      <tr><td><code>src/config/env.js</code></td><td>Membaca <code>.env</code> dan memvalidasi isinya dengan Zod.</td></tr>
+      <tr><td><code>src/config/prisma.js</code></td><td>Satu instance <code>PrismaClient</code> untuk seluruh aplikasi.</td></tr>
+      <tr><td><code>src/app.js</code></td><td>Menyusun Express: Swagger, helmet, cors, JSON, morgan, <code>/health</code>, <code>/api/v1</code>, 404, error handler.</td></tr>
+      <tr><td><code>src/server.js</code></td><td>Koneksi DB, <code>listen</code>, graceful shutdown.</td></tr>
+      <tr><td><code>src/routes/index.js</code></td><td>Memasang 8 router modul di bawah <code>/api/v1</code>.</td></tr>
+      <tr><td><code>src/docs/openapi.js</code></td><td>Spesifikasi OpenAPI 3: semua endpoint, contoh payload dan response, kode error, penjelasan relasi.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Database</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>File</th><th>Fungsi</th></tr></thead>
+    <tbody>
+      <tr><td><code>prisma/schema.prisma</code></td><td>Model User, Category, Service, Schedule, Booking, Payment, BookingStatusLog, RefreshToken.</td></tr>
+      <tr><td><code>prisma/migrations/20261011000000_init/migration.sql</code></td><td>SQL pembuatan tabel, enum, index, dan foreign key (215 baris).</td></tr>
+      <tr><td><code>prisma/migrations/migration_lock.toml</code></td><td>Penanda provider migration (postgresql).</td></tr>
+      <tr><td><code>prisma/seed.js</code></td><td>Mengosongkan tabel lalu mengisi data demo. Ditolak saat <code>NODE_ENV=production</code>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Middleware</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>File</th><th>Fungsi</th></tr></thead>
+    <tbody>
+      <tr><td><code>authenticate.js</code></td><td>Membaca <code>Authorization: Bearer</code>, verifikasi JWT, mengisi <code>req.user = { id, role }</code>. Juga ekspor <code>optionalAuthenticate</code>.</td></tr>
+      <tr><td><code>authorize.js</code></td><td><code>authorize('ADMIN')</code> / <code>authorize('USER')</code>. Mengembalikan 403 bila role tidak cocok.</td></tr>
+      <tr><td><code>validate.js</code></td><td>Menjalankan skema Zod pada body, query, params. Mengembalikan 422 dengan daftar field yang salah, dan mengganti input dengan nilai yang sudah dibersihkan (trim, coerce angka).</td></tr>
+      <tr><td><code>rateLimiter.js</code></td><td>Login/register: 10 percobaan per 15 menit. API umum: 500 request per 15 menit.</td></tr>
+      <tr><td><code>notFound.js</code></td><td>404 untuk route yang tidak ada.</td></tr>
+      <tr><td><code>errorHandler.js</code></td><td>Menerjemahkan <code>ApiError</code>, <code>ZodError</code>, JSON rusak, dan error Prisma (P2002→409, P2025→404, P2003→409) ke format response standar.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Utils</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>File</th><th>Fungsi</th></tr></thead>
+    <tbody>
+      <tr><td><code>ApiError.js</code></td><td>Class error dengan <code>statusCode</code> plus shortcut <code>badRequest</code>, <code>unauthorized</code>, <code>forbidden</code>, <code>notFound</code>, <code>conflict</code>.</td></tr>
+      <tr><td><code>asyncHandler.js</code></td><td>Membungkus controller async agar error diteruskan ke <code>next()</code>.</td></tr>
+      <tr><td><code>response.js</code></td><td><code>success(res, { statusCode, message, data, meta })</code>.</td></tr>
+      <tr><td><code>pagination.js</code></td><td><code>getPagination</code> (page/limit → skip/take, limit maksimal 100), <code>buildMeta</code>, <code>getSort</code> dengan whitelist field.</td></tr>
+      <tr><td><code>time.js</code></td><td>Helper jam: <code>addMinutes</code>, <code>isOverlapping</code>, <code>generateSlots</code>, <code>toDateTime</code> (WIB), <code>todayWib</code>, <code>isoDayOfWeek</code>.</td></tr>
+      <tr><td><code>dateRange.js</code></td><td><code>from/to/period</code> → rentang tanggal, filter kolom DATE, dan filter timestamp dengan batas hari WIB.</td></tr>
+      <tr><td><code>jwt.js</code></td><td>Sign/verify access dan refresh token, hash SHA-256.</td></tr>
+      <tr><td><code>bookingCode.js</code></td><td>Kode seperti <code>BK-20261011-7F3A9C</code>.</td></tr>
+      <tr><td><code>slugify.js</code> · <code>csv.js</code> · <code>sanitizeUser.js</code></td><td>Slug kategori, pembuat CSV, dan penghapus <code>passwordHash</code> dari response.</td></tr>
+      <tr><td><code>commonSchemas.js</code></td><td>Potongan Zod yang dipakai ulang: id, UUID, tanggal, jam, pagination, rentang tanggal.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Modul fitur (32 file)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Modul</th><th>File</th><th>Isi utama</th></tr></thead>
+    <tbody>
+      <tr><td>auth</td><td>routes · controller · service · schema</td><td>register, login, refresh (rotasi), logout, me, update me</td></tr>
+      <tr><td>users</td><td>routes · controller · service · schema</td><td>list/detail/update pelanggan (admin)</td></tr>
+      <tr><td>categories</td><td>routes · controller · service · schema</td><td>CRUD kategori, cek pemakaian sebelum hapus</td></tr>
+      <tr><td>services</td><td>routes · controller · service · schema</td><td>CRUD layanan, search/filter, soft delete + tutup slot ke depan</td></tr>
+      <tr><td>schedules</td><td>routes · controller · service · schema</td><td>slot publik, CRUD slot, bulk generate, cek bentrok</td></tr>
+      <tr><td>bookings</td><td>routes · controller · service · schema · <strong>rules</strong></td><td>transaksi booking, state machine, cancel, audit log</td></tr>
+      <tr><td>payments</td><td>routes · controller · service · schema</td><td>tandai lunas</td></tr>
+      <tr><td>reports</td><td>routes · controller · service · schema</td><td>summary, top services, busiest schedules, revenue, export CSV</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Test (6 file)</h3>
+  <p><code>tests/setup.js</code>, <code>tests/unit/time.test.js</code>, <code>pagination.test.js</code>, <code>bookingRules.test.js</code>, <code>dateRange.test.js</code>, dan <code>tests/integration/app.test.js</code>.</p>
+
+  <h3>Dokumen</h3>
+  <p><code>docs/implementasi-backend.html</code>, yaitu dokumen ini.</p>
+</section>
+
+<!-- 5 -->
+<section id="file-edit">
+  <h2>5. File yang diedit</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>File</th><th>Perubahan</th></tr></thead>
+    <tbody>
+      <tr><td><code>docs/perancangan-sistem-booking.html</code></td><td>
+        <ul style="margin:0;padding-left:18px">
+          <li>ERD: <code>start_time</code>/<code>end_time</code> diubah dari <code>time</code> menjadi <code>string "HH:mm"</code>.</li>
+          <li>Cuplikan schema Prisma: <code>@db.Time</code> menjadi <code>String @db.VarChar(5)</code>.</li>
+          <li>Tech stack dan tabel keamanan: <code>bcrypt</code> menjadi <code>bcryptjs</code>.</li>
+        </ul></td></tr>
+      <tr><td><code>backend/src/middlewares/errorHandler.js</code></td><td>Komentar <code>eslint-disable</code> dihapus agar setiap komentar tetap satu baris, sesuai aturan project.</td></tr>
+      <tr><td><code>backend/.env</code></td><td>Sempat diarahkan ke database uji sementara, lalu dikembalikan ke isi <code>.env.example</code>.</td></tr>
+    </tbody>
+  </table></div>
+  <p><code>Guideline Final Project FWD.docx</code> tidak diubah.</p>
+</section>
+
+<!-- 6 -->
+<section id="mvc">
+  <h2>6. Arsitektur MVC</h2>
+  <p>Backend ini adalah REST API, jadi tidak ada template HTML. Pola MVC diterapkan seperti berikut, ditambah lapisan <strong>Service</strong> agar controller tetap tipis:</p>
+  <div class="grid3">
+    <div class="card"><h4>Model</h4><p><code>prisma/schema.prisma</code> mendefinisikan struktur data dan relasi. Prisma Client yang di-generate (<code>prisma.booking</code>, <code>prisma.schedule</code>, …) adalah objek model yang dipakai di service.</p></div>
+    <div class="card"><h4>View</h4><p>Representasi JSON. Semua response dibentuk oleh <code>utils/response.js</code> (sukses) dan <code>errorHandler.js</code> (gagal) dengan format seragam. <code>sanitizeUser</code> dan <code>include/select</code> Prisma menentukan field yang tampil. Swagger UI adalah "view" dokumentasinya.</p></div>
+    <div class="card"><h4>Controller</h4><p><code>*.controller.js</code> menerima <code>req</code>, memanggil service, dan mengirim view lewat <code>success()</code>. Controller tidak berisi query maupun aturan bisnis.</p></div>
+    <div class="card"><h4>Service (business logic)</h4><p><code>*.service.js</code> berisi aturan bisnis: cek kuota, bentrok jadwal, transaksi, state machine. Service tidak mengenal <code>req</code>/<code>res</code>, sehingga mudah diuji dan dipakai ulang.</p></div>
+    <div class="card"><h4>Routes + Schema</h4><p><code>*.routes.js</code> memetakan URL ke controller dan memasang middleware. <code>*.schema.js</code> mendefinisikan bentuk input yang valid.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  C(["Client<br/>React / Postman"]) -->|HTTP JSON| R["Route<br/>bookings.routes.js"]
+  R --> MW["Middleware<br/>authenticate → authorize → validate"]
+  MW --> CT["Controller<br/>bookings.controller.js"]
+  CT --> SV["Service<br/>bookings.service.js"]
+  SV --> RL["Rules<br/>bookings.rules.js"]
+  SV --> MD["Model<br/>Prisma Client"]
+  MD --> DB[("PostgreSQL")]
+  CT --> V["View<br/>response.js → JSON"]
+  V --> C
+  SV -. throw ApiError .-> EH["errorHandler.js"]
+  EH -->|JSON error| C
+</pre>
+  </div>
+
+  <h3>Contoh satu fitur ditelusuri lewat file: membuat booking</h3>
+<pre class="code"><code><span class="cm">// 1. bookings.routes.js: URL, middleware, controller</span>
+router.post('/', authorize('USER'), validate(createBookingSchema), controller.createBooking);
+
+<span class="cm">// 2. bookings.schema.js: bentuk input yang valid</span>
+body: z.object({ scheduleId: z.coerce.number().int().positive(), notes: z.string().trim().max(500).optional() })
+
+<span class="cm">// 3. bookings.controller.js: ambil input, panggil service, kirim view</span>
+const data = await bookingsService.createBooking(req.user.id, req.body);
+success(res, { statusCode: 201, message: 'Booking created', data });
+
+<span class="cm">// 4. bookings.service.js: aturan bisnis + model, di dalam transaksi</span>
+await lockSchedule(tx, scheduleId);                     <span class="cm">// SELECT ... FOR UPDATE</span>
+if (slot.bookedCount &gt;= slot.capacity) throw ApiError.conflict('This schedule is fully booked');
+const booking = await tx.booking.create({ data: { ..., payment: { create: {...} }, logs: { create: {...} } } });</code></pre>
+</section>
+
+<!-- 7 -->
+<section id="erd">
+  <h2>7. ERD dan data</h2>
+  <div class="diagram">
+<pre class="mermaid">
+erDiagram
+  USERS ||--o{ BOOKINGS : "places"
+  USERS ||--o{ REFRESH_TOKENS : "owns"
+  USERS |o--o{ BOOKING_STATUS_LOGS : "changed_by"
+  CATEGORIES ||--o{ SERVICES : "groups"
+  SERVICES ||--o{ SCHEDULES : "offers"
+  SERVICES ||--o{ BOOKINGS : "is booked in"
+  SCHEDULES ||--o{ BOOKINGS : "holds"
+  BOOKINGS ||--|| PAYMENTS : "has"
+  BOOKINGS ||--o{ BOOKING_STATUS_LOGS : "history"
+
+  USERS {
+    uuid id PK
+    varchar name
+    varchar email UK
+    varchar phone
+    text password_hash
+    Role role "ADMIN | USER"
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
+  }
+  CATEGORIES {
+    int id PK
+    varchar name UK
+    varchar slug UK
+    timestamp created_at
+  }
+  SERVICES {
+    int id PK
+    int category_id FK
+    varchar name
+    text description
+    decimal price "12,2"
+    int duration_minutes
+    ServiceStatus status "ACTIVE | INACTIVE"
+    text image_url
+    timestamp deleted_at "soft delete"
+  }
+  SCHEDULES {
+    int id PK
+    int service_id FK
+    date date
+    varchar start_time "HH:mm"
+    varchar end_time "HH:mm"
+    int capacity
+    int booked_count
+    ScheduleStatus status "AVAILABLE | FULL | CLOSED"
+  }
+  BOOKINGS {
+    uuid id PK
+    varchar booking_code UK
+    uuid user_id FK
+    int service_id FK
+    int schedule_id FK
+    decimal total_price
+    BookingStatus status "PENDING | CONFIRMED | COMPLETED | CANCELLED"
+    varchar notes
+    timestamp created_at
+  }
+  PAYMENTS {
+    uuid id PK
+    uuid booking_id FK,UK
+    decimal amount
+    PaymentMethod method "CASH | TRANSFER | EWALLET"
+    PaymentStatus status "UNPAID | PAID | REFUNDED"
+    timestamp paid_at
+  }
+  BOOKING_STATUS_LOGS {
+    int id PK
+    uuid booking_id FK
+    BookingStatus from_status
+    BookingStatus to_status
+    uuid changed_by FK
+    varchar note
+    timestamp created_at
+  }
+  REFRESH_TOKENS {
+    uuid id PK
+    uuid user_id FK
+    varchar token_hash UK "sha256"
+    timestamp expires_at
+  }
+</pre>
+  </div>
+
+  <h3>Relasi</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Relasi</th><th>Kardinalitas</th><th>Arti</th><th>On delete</th></tr></thead>
+    <tbody>
+      <tr><td>Category → Service</td><td>1 : N</td><td>Satu kategori punya banyak layanan.</td><td>Restrict (dicek di service, 409)</td></tr>
+      <tr><td>Service → Schedule</td><td>1 : N</td><td>Satu layanan punya banyak slot jadwal.</td><td>Restrict; layanan di-soft delete</td></tr>
+      <tr><td>Schedule → Booking</td><td>1 : N</td><td>Satu slot bisa diisi beberapa booking sampai <code>capacity</code>.</td><td>Restrict (409 bila ada riwayat)</td></tr>
+      <tr><td>User → Booking</td><td>1 : N</td><td>Satu pelanggan punya banyak booking.</td><td>Restrict</td></tr>
+      <tr><td>Service → Booking</td><td>1 : N</td><td>Disimpan langsung untuk mempercepat laporan per layanan.</td><td>Restrict</td></tr>
+      <tr><td>Booking → Payment</td><td>1 : 1</td><td>Setiap booking punya tepat satu catatan pembayaran (<code>booking_id</code> unik).</td><td>Cascade</td></tr>
+      <tr><td>Booking → BookingStatusLog</td><td>1 : N</td><td>Jejak setiap perubahan status.</td><td>Cascade</td></tr>
+      <tr><td>User → BookingStatusLog</td><td>1 : N (opsional)</td><td>Siapa yang mengubah status.</td><td>—</td></tr>
+      <tr><td>User → RefreshToken</td><td>1 : N</td><td>Satu user bisa login dari beberapa perangkat.</td><td>Cascade</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Constraint dan index</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Tabel</th><th>Constraint / index</th><th>Kegunaan</th></tr></thead>
+    <tbody>
+      <tr><td>users</td><td>UNIQUE(email), INDEX(role)</td><td>Email tidak dobel; daftar pelanggan cepat.</td></tr>
+      <tr><td>categories</td><td>UNIQUE(name), UNIQUE(slug)</td><td>Nama kategori tidak dobel.</td></tr>
+      <tr><td>services</td><td>INDEX(category_id), INDEX(status)</td><td>Filter katalog.</td></tr>
+      <tr><td>schedules</td><td>UNIQUE(service_id, date, start_time), INDEX(date, status)</td><td>Pengaman kedua terhadap slot ganda; cari slot tersedia per tanggal.</td></tr>
+      <tr><td>bookings</td><td>UNIQUE(booking_code), INDEX(user_id, status), INDEX(schedule_id), INDEX(status), INDEX(created_at)</td><td>Riwayat user, cek bentrok, laporan per periode.</td></tr>
+      <tr><td>payments</td><td>UNIQUE(booking_id), INDEX(status, paid_at)</td><td>Relasi 1:1; laporan pendapatan.</td></tr>
+      <tr><td>refresh_tokens</td><td>UNIQUE(token_hash), INDEX(user_id)</td><td>Lookup cepat saat refresh/logout.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Data demo dari seeder</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Data</th><th>Isi</th></tr></thead>
+    <tbody>
+      <tr><td>Users</td><td>1 admin, 2 pelanggan (Budi, Siti)</td></tr>
+      <tr><td>Categories</td><td>Hair Care, Spa &amp; Massage, Nail Care, Consultation</td></tr>
+      <tr><td>Services</td><td>Haircut &amp; Styling (Rp75.000, 60 menit), Hair Coloring (Rp250.000, 120), Balinese Massage (Rp180.000, 90), Facial Treatment (Rp150.000, 60), Manicure &amp; Pedicure (Rp120.000, 60), Beauty Consultation (Rp50.000, 30)</td></tr>
+      <tr><td>Schedules</td><td>Slot 09:00–17:00 untuk setiap layanan, dari H-7 sampai H+14</td></tr>
+      <tr><td>Bookings</td><td>11 contoh: COMPLETED, CANCELLED, CONFIRMED, PENDING, lengkap dengan payment dan status log</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 8 -->
+<section id="pipeline">
+  <h2>8. Pipeline</h2>
+  <h3>8.1 Request pipeline (urutan middleware)</h3>
+  <p>Setiap request melewati tahapan di bawah secara berurutan. Jika satu tahap gagal, request langsung melompat ke <code>errorHandler</code> dan tahap berikutnya tidak dijalankan. Karena itu input tidak valid tidak pernah menyentuh database.</p>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  IN(["Incoming request"]) --> D{"/api/docs ?"}
+  D -- ya --> SW["Swagger UI"]
+  D -- tidak --> H["helmet<br/>security headers"]
+  H --> CO["cors<br/>origin whitelist"]
+  CO --> J["express.json<br/>parse body, max 1mb"]
+  J --> LG["morgan<br/>request log"]
+  LG --> RL["apiLimiter<br/>500 req / 15 min"]
+  RL --> RT["routes/index.js<br/>/api/v1/:module"]
+  RT --> AU["authenticate<br/>verify JWT → req.user"]
+  AU --> AZ["authorize(role)"]
+  AZ --> VA["validate(zodSchema)"]
+  VA --> CT["controller"]
+  CT --> SV["service + Prisma"]
+  SV --> OK(["200/201 JSON"])
+  RT -. no match .-> NF["notFound 404"]
+  J -. bad JSON .-> EH
+  RL -. 429 .-> EH
+  AU -. 401 .-> EH
+  AZ -. 403 .-> EH
+  VA -. 422 .-> EH
+  SV -. ApiError / Prisma error .-> EH["errorHandler"]
+  NF --> EH
+  EH --> ERR(["4xx/5xx JSON"])
+</pre>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Tahap</th><th>Gagal bila</th><th>Response</th></tr></thead>
+    <tbody>
+      <tr><td><code>express.json</code></td><td>Body bukan JSON valid</td><td class="num">400</td></tr>
+      <tr><td><code>apiLimiter</code> / <code>authLimiter</code></td><td>Melebihi batas request</td><td class="num">429</td></tr>
+      <tr><td><code>authenticate</code></td><td>Token tidak ada, palsu, atau kedaluwarsa</td><td class="num">401</td></tr>
+      <tr><td><code>authorize</code></td><td>Role tidak sesuai</td><td class="num">403</td></tr>
+      <tr><td><code>validate</code></td><td>Input tidak sesuai skema Zod</td><td class="num">422</td></tr>
+      <tr><td>service</td><td>Data tidak ada / aturan bisnis dilanggar / konflik</td><td class="num">404 · 400 · 409</td></tr>
+      <tr><td><code>errorHandler</code></td><td>Error tak terduga</td><td class="num">500</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>8.2 Pipeline transaksi booking</h3>
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant C as Controller
+  participant S as bookings.service
+  participant DB as PostgreSQL
+  C->>S: createBooking(userId, {scheduleId})
+  S->>DB: BEGIN
+  S->>DB: SELECT id FROM schedules WHERE id=$1 FOR UPDATE
+  Note over DB: request lain untuk slot yang sama MENUNGGU di sini
+  S->>DB: SELECT schedule + service
+  S->>S: cek: layanan aktif, belum lewat, tidak CLOSED, kuota tersisa
+  S->>DB: SELECT booking aktif user yang waktunya overlap
+  alt melanggar aturan
+    S->>DB: ROLLBACK
+    S-->>C: throw ApiError (400/404/409)
+  else valid
+    S->>DB: INSERT bookings + payments(UNPAID) + booking_status_logs
+    S->>DB: UPDATE schedules SET booked_count+1, status FULL bila penuh
+    S->>DB: COMMIT
+    S-->>C: booking
+  end
+</pre>
+  </div>
+
+  <h3>8.3 Pipeline development sampai deploy</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  A["Edit schema.prisma"] --> B["prisma migrate dev<br/>→ migration.sql"]
+  B --> C["Tulis modul<br/>routes·controller·service·schema"]
+  C --> D["npm test<br/>Jest + Supertest"]
+  D --> E["Uji manual<br/>Swagger / Postman"]
+  E --> F["git push GitHub"]
+  F --> G["Railway / Render<br/>build Dockerfile"]
+  G --> H["prisma migrate deploy"]
+  H --> I["node src/server.js"]
+  I --> J[("PostgreSQL<br/>Neon / Railway")]
+</pre>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="dfd">
+  <h2>9. Data flow diagram</h2>
+  <p>Notasi: kotak persegi = entitas eksternal, lingkaran = proses, silinder = data store (tabel). Label panah = data yang mengalir.</p>
+
+  <h3>DFD level 0 (context diagram)</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  P["Pelanggan"]
+  A["Admin"]
+  S(("0<br/>Sistem Booking<br/>&amp; Manajemen Layanan"))
+  P -- "data registrasi, login,<br/>pilihan layanan &amp; jadwal,<br/>permintaan booking/batal" --> S
+  S -- "token, katalog layanan,<br/>slot tersedia, kode booking,<br/>status &amp; riwayat booking" --> P
+  A -- "login, data kategori/layanan,<br/>jadwal, status booking,<br/>pembayaran, filter laporan" --> S
+  S -- "data pelanggan, daftar booking,<br/>laporan, file CSV" --> A
+</pre>
+  </div>
+
+  <h3>DFD level 1</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  P["Pelanggan"]
+  A["Admin"]
+
+  P1(("1.0<br/>Kelola<br/>Autentikasi"))
+  P2(("2.0<br/>Kelola Kategori<br/>&amp; Layanan"))
+  P3(("3.0<br/>Kelola<br/>Jadwal"))
+  P4(("4.0<br/>Proses<br/>Booking"))
+  P5(("5.0<br/>Catat<br/>Pembayaran"))
+  P6(("6.0<br/>Kelola<br/>Pelanggan"))
+  P7(("7.0<br/>Buat<br/>Laporan"))
+
+  D1[("D1 users")]
+  D2[("D2 refresh_tokens")]
+  D3[("D3 categories")]
+  D4[("D4 services")]
+  D5[("D5 schedules")]
+  D6[("D6 bookings")]
+  D7[("D7 payments")]
+  D8[("D8 booking_status_logs")]
+
+  P -- "register / login" --> P1
+  A -- "login" --> P1
+  P1 -- "access + refresh token" --> P
+  P1 -- "access + refresh token" --> A
+  P1 <--> D1
+  P1 <--> D2
+
+  A -- "data kategori &amp; layanan" --> P2
+  P2 <--> D3
+  P2 <--> D4
+  P2 -- "katalog layanan" --> P
+
+  A -- "slot / bulk generate" --> P3
+  D4 -- "durasi layanan" --> P3
+  P3 <--> D5
+  P3 -- "slot tersedia" --> P
+
+  P -- "scheduleId, notes / batal" --> P4
+  A -- "ubah status / batal" --> P4
+  D5 -- "kuota &amp; waktu slot" --> P4
+  D4 -- "harga" --> P4
+  P4 -- "booked_count" --> D5
+  P4 --> D6
+  P4 -- "payment UNPAID / REFUNDED" --> D7
+  P4 --> D8
+  P4 -- "kode &amp; status booking" --> P
+
+  A -- "metode bayar" --> P5
+  P5 <--> D7
+
+  A -- "cari / nonaktifkan" --> P6
+  P6 <--> D1
+  D6 -- "jumlah booking" --> P6
+
+  A -- "periode laporan" --> P7
+  D6 --> P7
+  D7 --> P7
+  D5 --> P7
+  D4 --> P7
+  P7 -- "ringkasan, top services,<br/>jam ramai, pendapatan, CSV" --> A
+</pre>
+  </div>
+
+  <h3>DFD level 2: proses 4.0 Proses Booking</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  P["Pelanggan"]
+  A["Admin"]
+  D4[("D4 services")]
+  D5[("D5 schedules")]
+  D6[("D6 bookings")]
+  D7[("D7 payments")]
+  D8[("D8 booking_status_logs")]
+
+  P41(("4.1<br/>Validasi input<br/>&amp; token"))
+  P42(("4.2<br/>Kunci &amp; cek<br/>slot"))
+  P43(("4.3<br/>Cek bentrok<br/>jadwal user"))
+  P44(("4.4<br/>Simpan booking<br/>&amp; payment"))
+  P45(("4.5<br/>Ubah status /<br/>batalkan"))
+
+  P -- "scheduleId, notes, JWT" --> P41
+  P41 -- "input valid" --> P42
+  D5 -- "capacity, booked_count,<br/>status, waktu" --> P42
+  D4 -- "status layanan" --> P42
+  P42 -- "slot valid" --> P43
+  D6 -- "booking aktif user" --> P43
+  P43 -- "tidak bentrok" --> P44
+  D4 -- "harga" --> P44
+  P44 -- "booking PENDING" --> D6
+  P44 -- "payment UNPAID" --> D7
+  P44 -- "log PENDING" --> D8
+  P44 -- "booked_count + 1" --> D5
+  P44 -- "kode booking" --> P
+
+  P -- "batal" --> P45
+  A -- "CONFIRMED / COMPLETED / CANCELLED" --> P45
+  D6 -- "status sekarang" --> P45
+  P45 -- "status baru" --> D6
+  P45 -- "log transisi" --> D8
+  P45 -- "booked_count - 1 (batal)" --> D5
+  P45 -- "REFUNDED bila PAID" --> D7
+</pre>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="endpoint">
+  <h2>10. Endpoint yang diimplementasikan</h2>
+  <p>Base URL <code>/api/v1</code>. Dokumentasi interaktif lengkap dengan contoh payload ada di <code>/api/docs</code>.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Method</th><th>Path</th><th>Akses</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m POST">POST</span></td><td><code>/auth/register</code> · <code>/auth/login</code> · <code>/auth/refresh</code></td><td>Publik</td></tr>
+      <tr><td><span class="m POST">POST</span></td><td><code>/auth/logout</code></td><td>Login</td></tr>
+      <tr><td><span class="m GET">GET</span> <span class="m PATCH">PATCH</span></td><td><code>/auth/me</code></td><td>Login</td></tr>
+      <tr><td><span class="m GET">GET</span></td><td><code>/users</code> · <code>/users/:id</code></td><td>Admin</td></tr>
+      <tr><td><span class="m PATCH">PATCH</span></td><td><code>/users/:id</code></td><td>Admin</td></tr>
+      <tr><td><span class="m GET">GET</span></td><td><code>/categories</code> · <code>/categories/:id</code></td><td>Publik</td></tr>
+      <tr><td><span class="m POST">POST</span> <span class="m PATCH">PATCH</span> <span class="m DELETE">DELETE</span></td><td><code>/categories</code> · <code>/categories/:id</code></td><td>Admin</td></tr>
+      <tr><td><span class="m GET">GET</span></td><td><code>/services</code> · <code>/services/:id</code> · <code>/services/:id/schedules</code></td><td>Publik</td></tr>
+      <tr><td><span class="m POST">POST</span> <span class="m PATCH">PATCH</span> <span class="m DELETE">DELETE</span></td><td><code>/services</code> · <code>/services/:id</code></td><td>Admin</td></tr>
+      <tr><td><span class="m GET">GET</span> <span class="m POST">POST</span></td><td><code>/schedules</code> · <code>/schedules/bulk</code></td><td>Admin</td></tr>
+      <tr><td><span class="m GET">GET</span> <span class="m PATCH">PATCH</span> <span class="m DELETE">DELETE</span></td><td><code>/schedules/:id</code></td><td>Admin</td></tr>
+      <tr><td><span class="m POST">POST</span> <span class="m GET">GET</span></td><td><code>/bookings</code> (buat) · <code>/bookings/me</code></td><td>User</td></tr>
+      <tr><td><span class="m GET">GET</span></td><td><code>/bookings</code> (semua)</td><td>Admin</td></tr>
+      <tr><td><span class="m GET">GET</span> <span class="m PATCH">PATCH</span></td><td><code>/bookings/:id</code> · <code>/bookings/:id/cancel</code></td><td>Pemilik / Admin</td></tr>
+      <tr><td><span class="m PATCH">PATCH</span></td><td><code>/bookings/:id/status</code> · <code>/payments/:bookingId</code></td><td>Admin</td></tr>
+      <tr><td><span class="m GET">GET</span></td><td><code>/reports/summary</code> · <code>/top-services</code> · <code>/busiest-schedules</code> · <code>/revenue</code> · <code>/export</code></td><td>Admin</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Contoh request dan response</h3>
+<pre class="code"><code>POST /api/v1/bookings
+Authorization: Bearer &lt;accessToken pelanggan&gt;
+{ "scheduleId": 98, "notes": "Please use unscented products" }
+
+<span class="cm">// 201 Created</span>
+{
+  "success": true,
+  "message": "Booking created",
+  "data": {
+    "id": "7594aff5-eb61-4c61-bfc3-942f4469d2d5",
+    "bookingCode": "BK-20261011-3FFE58",
+    "status": "PENDING",
+    "totalPrice": "75000",
+    "service":  { "id": 1, "name": "Haircut &amp; Styling", "durationMinutes": 60 },
+    "schedule": { "id": 98, "date": "2026-10-16T00:00:00.000Z", "startTime": "10:00", "endTime": "11:00" },
+    "payment":  { "status": "UNPAID", "amount": "75000", "method": null }
+  }
+}
+
+<span class="cm">// 409 Conflict bila jadwal user bentrok</span>
+{ "success": false, "message": "You already have booking BK-20261011-3FFE58 at an overlapping time" }
+
+<span class="cm">// 422 bila input salah</span>
+{ "success": false, "message": "Validation failed",
+  "errors": [ { "field": "scheduleId", "message": "Expected number, received nan" } ] }</code></pre>
+
+  <h3>Parameter list yang didukung</h3>
+  <p><code>page</code>, <code>limit</code> (maks 100), <code>sort=field:asc|desc</code> (whitelist), <code>search</code>, <code>status</code>, <code>categoryId</code>, <code>serviceId</code>, <code>minPrice</code>/<code>maxPrice</code>, <code>from</code>/<code>to</code> (YYYY-MM-DD), <code>period=today|this_week|this_month</code>. Response list selalu menyertakan <code>meta: { page, limit, total, totalPages }</code>.</p>
+</section>
+
+<!-- 11 -->
+<section id="aturan">
+  <h2>11. Aturan bisnis yang diterapkan</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Area</th><th>Aturan</th><th>Error</th></tr></thead>
+    <tbody>
+      <tr><td>Auth</td><td>Password minimal 8 karakter, berisi huruf dan angka. Email unik.</td><td>422 / 409</td></tr>
+      <tr><td>Auth</td><td>Akun nonaktif tidak bisa login atau refresh. Menonaktifkan akun mencabut semua refresh token.</td><td>403</td></tr>
+      <tr><td>Auth</td><td>Refresh token sekali pakai (rotasi). Token yang sudah dipakai atau sudah logout ditolak.</td><td>401</td></tr>
+      <tr><td>Kategori</td><td>Tidak bisa dihapus bila masih punya layanan.</td><td>409</td></tr>
+      <tr><td>Layanan</td><td>Harga &gt; 0, durasi 15–480 menit. Pengunjung hanya melihat layanan ACTIVE.</td><td>422 / 404</td></tr>
+      <tr><td>Layanan</td><td>Hapus = soft delete. Ditolak bila masih ada booking aktif ke depan. Slot ke depan otomatis CLOSED.</td><td>409</td></tr>
+      <tr><td>Jadwal</td><td><code>endTime = startTime + durasi</code>. Tidak boleh di masa lalu atau melewati tengah malam.</td><td>400</td></tr>
+      <tr><td>Jadwal</td><td>Slot satu layanan tidak boleh overlap: <code>a.start &lt; b.end AND a.end &gt; b.start</code>.</td><td>409</td></tr>
+      <tr><td>Jadwal</td><td>Kapasitas tidak boleh di bawah jumlah yang sudah dibooking. Slot yang sudah ada booking tidak bisa dipindah atau dihapus.</td><td>409</td></tr>
+      <tr><td>Booking</td><td>Slot harus ada, layanan aktif, belum mulai, tidak CLOSED, kuota tersisa.</td><td>404 / 400 / 409</td></tr>
+      <tr><td>Booking</td><td>User tidak boleh punya dua booking aktif yang waktunya overlap, termasuk lintas layanan.</td><td>409</td></tr>
+      <tr><td>Booking</td><td>Race condition dicegah dengan row lock <code>FOR UPDATE</code> di dalam transaksi.</td><td>409</td></tr>
+      <tr><td>Status</td><td>Hanya PENDING→CONFIRMED/CANCELLED dan CONFIRMED→COMPLETED/CANCELLED. COMPLETED hanya setelah jadwal dimulai.</td><td>400</td></tr>
+      <tr><td>Pembatalan</td><td>Pelanggan hanya bisa membatalkan booking miliknya, minimal 2 jam sebelum mulai. Kuota slot dikembalikan; payment PAID menjadi REFUNDED.</td><td>403 / 400</td></tr>
+      <tr><td>Pembayaran</td><td>Tidak bisa dicatat untuk booking CANCELLED atau dicatat dua kali.</td><td>400 / 409</td></tr>
+      <tr><td>Privasi</td><td>Pelanggan hanya bisa melihat booking miliknya. <code>passwordHash</code> tidak pernah dikirim.</td><td>403</td></tr>
+      <tr><td>Waktu</td><td>Semua tanggal dan jam bisnis memakai WIB (UTC+7).</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 12 -->
+<section id="uji">
+  <h2>12. Hasil pengujian</h2>
+  <h3>Unit &amp; integration test (Jest): 24/24 lulus</h3>
+<pre class="code"><code>PASS tests/integration/app.test.js
+PASS tests/unit/time.test.js
+PASS tests/unit/dateRange.test.js
+PASS tests/unit/bookingRules.test.js
+PASS tests/unit/pagination.test.js
+
+Test Suites: 5 passed, 5 total
+Tests:       24 passed, 24 total</code></pre>
+  <p>Integration test memastikan pipeline middleware bekerja tanpa database: 404, 422 dengan daftar field, 400 untuk JSON rusak, 401 tanpa token atau dengan token palsu, 403 untuk role yang salah, dan spesifikasi Swagger tersedia.</p>
+
+  <h3>End-to-end ke PostgreSQL sungguhan: 41/41 lulus</h3>
+  <p>Dijalankan terhadap instance PostgreSQL 17 sementara (port 55432, folder scratchpad) setelah <code>migrate deploy</code> dan seeder. Database Anda di port 5432 tidak disentuh. Instance tersebut sudah dimatikan.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Skenario</th><th>Hasil</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Login admin / password salah</td><td><span class="pill pass">200 / 401</span></td><td></td></tr>
+      <tr><td>Register / email duplikat</td><td><span class="pill pass">201 / 409</span></td><td></td></tr>
+      <tr><td>Refresh token rotasi / pakai ulang token lama</td><td><span class="pill pass">200 / 401</span></td><td></td></tr>
+      <tr><td>Search layanan "hair"</td><td><span class="pill pass">200</span></td><td>total = 2</td></tr>
+      <tr><td>Hapus kategori yang dipakai</td><td><span class="pill pass">409</span></td><td></td></tr>
+      <tr><td>Buat kategori, layanan, slot</td><td><span class="pill pass">201</span></td><td>slot 10:00–11:00 dihitung otomatis</td></tr>
+      <tr><td>Slot overlap / slot di masa lalu</td><td><span class="pill pass">409 / 400</span></td><td></td></tr>
+      <tr><td>Bulk generate 09:00–13:00</td><td><span class="pill pass">201</span></td><td>created 3, skipped 1 (bentrok slot 10:00)</td></tr>
+      <tr><td><strong>Race: 2 user, 1 kursi, request bersamaan</strong></td><td><span class="pill pass">201 + 409</span></td><td>"Booking created" dan "This schedule is fully booked"</td></tr>
+      <tr><td>Slot menjadi FULL lalu kembali AVAILABLE setelah batal</td><td><span class="pill pass">OK</span></td><td>booked 1 → 0</td></tr>
+      <tr><td>Booking jam bersebelahan (09–10 dan 10–11)</td><td><span class="pill pass">201</span></td><td>tidak dianggap bentrok</td></tr>
+      <tr><td>Booking overlap lintas layanan (10–11 vs 09–10:30)</td><td><span class="pill pass">409</span></td><td>"You already have booking … at an overlapping time"</td></tr>
+      <tr><td>User lain melihat booking</td><td><span class="pill pass">403</span></td><td></td></tr>
+      <tr><td>PENDING→COMPLETED / complete sebelum jadwal</td><td><span class="pill pass">400 / 400</span></td><td></td></tr>
+      <tr><td>Konfirmasi, bayar, bayar dua kali</td><td><span class="pill pass">200 / 200 / 409</span></td><td></td></tr>
+      <tr><td>Pelanggan batal setelah bayar</td><td><span class="pill pass">200</span></td><td>payment → REFUNDED</td></tr>
+      <tr><td>Riwayat status</td><td><span class="pill pass">OK</span></td><td>PENDING › CONFIRMED › CANCELLED</td></tr>
+      <tr><td>Hapus slot yang punya riwayat</td><td><span class="pill pass">409</span></td><td></td></tr>
+      <tr><td>Filter booking saya, search admin + pagination</td><td><span class="pill pass">200</span></td><td>total 11, 3 halaman (limit 5)</td></tr>
+      <tr><td>Laporan summary / top / busiest / revenue / CSV</td><td><span class="pill pass">200</span></td><td>Top: Haircut &amp; Styling 3 booking; CSV 15 baris</td></tr>
+      <tr><td>Logout lalu refresh</td><td><span class="pill pass">200 / 401</span></td><td></td></tr>
+      <tr><td>Swagger UI <code>/api/docs</code></td><td><span class="pill pass">200</span></td><td></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 13 -->
+<section id="lanjut">
+  <h2>13. Langkah berikutnya</h2>
+  <div class="note warn"><strong>Isi password database Anda</strong>PostgreSQL lokal Anda (port 5432) menolak login <code>postgres</code> dengan password default, jadi belum ada tabel yang dibuat di sana. Ubah <code>DATABASE_URL</code> di <code>backend/.env</code>, lalu jalankan <code>npm run db:migrate</code> dan <code>npm run db:seed</code>.</div>
+  <div class="note warn"><strong>Pahami kodenya sebelum checkpoint</strong>Guideline memberi nilai 0 bila pengerjaan terdeteksi 100% memakai AI, dan mentor akan menanyakan kode saat Checkpoint 1. Bagian yang paling mungkin ditanyakan: <code>bookings.service.js</code> (transaksi dan row lock), <code>schedules.service.js</code> (rumus overlap), <code>authenticate.js</code>/<code>authorize.js</code>, dan <code>errorHandler.js</code>. Coba ubah atau tambah fitur kecil sendiri agar Anda benar-benar menguasainya.</div>
+  <ul>
+    <li><strong>Git:</strong> folder project belum menjadi repository git. Jalankan <code>git init</code> di <code>fin-pro/</code> dan commit secara bertahap per modul agar riwayat pengerjaan terlihat.</li>
+    <li><strong>Postman:</strong> impor <code>http://localhost:5000/api/docs.json</code> ke Postman untuk mendapat koleksi siap pakai, lalu ekspor ke <code>docs/</code>.</li>
+    <li><strong>Frontend:</strong> React + Vite di folder <code>frontend/</code> sesuai bagian 9 dokumen perancangan. Set <code>CORS_ORIGIN</code> ke URL frontend.</li>
+    <li><strong>Opsional:</strong> caching Redis untuk <code>/services</code> dan <code>/reports</code>, upload gambar layanan, export PDF.</li>
+    <li><strong>ORM:</strong> backend sudah dipindah ke Sequelize. Lihat <a href="migrasi-prisma-ke-sequelize.html">migrasi-prisma-ke-sequelize.html</a>.</li>
+  </ul>
+</section>
+</main>
+</div>

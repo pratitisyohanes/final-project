@@ -1,0 +1,304 @@
+<title>Implementasi Frontend BookEase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column (max 980px); numbered steps follow the real build order */
+:root {
+  --bg: #f6f8f9; --surface: #ffffff; --fg: #17232b; --muted: #56656f; --line: #d8e0e4;
+  --accent: #0d6c73; --accent-soft: #e2f1f2;
+  --ok: #1d7a43; --ok-bg: #e3f4ea; --warn: #9a6200; --warn-bg: #fbf0d9;
+  --code-bg: #eef2f4;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Libre Franklin", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11181d; --surface: #172128; --fg: #e3eaee; --muted: #9aaab4; --line: #2a3943;
+  --accent: #5cc2c9; --accent-soft: #173539; --ok: #6ccf93; --ok-bg: #173323; --warn: #e6b45a; --warn-bg: #3a2c12;
+  --code-bg: #1d2a32; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11181d; --surface: #172128; --fg: #e3eaee; --muted: #9aaab4; --line: #2a3943;
+  --accent: #5cc2c9; --accent-soft: #173539; --ok: #6ccf93; --ok-bg: #173323; --warn: #e6b45a; --warn-bg: #3a2c12;
+  --code-bg: #1d2a32; color-scheme: dark; }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 980px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 72px; display: grid; gap: 44px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(28px, 5vw, 40px); }
+h2 { font-size: 23px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+h3 { font-size: 16.5px; }
+p { margin: 0; max-width: 70ch; }
+section { display: grid; gap: 14px; min-width: 0; }
+header { display: grid; gap: 12px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.lede { color: var(--muted); font-size: 16px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); }
+code { font-family: var(--f-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--code-bg); padding: 14px 16px; border-radius: 6px; overflow-x: auto; font-family: var(--f-mono); font-size: 12.8px; line-height: 1.55; margin: 0; }
+pre code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; }
+ul, ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 74ch; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 600px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--f-mono); font-weight: 500; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--code-bg); }
+.chip { display: inline-block; font-family: var(--f-mono); font-size: 11.5px; font-weight: 500; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.ok { color: var(--ok); background: var(--ok-bg); }
+.warn { color: var(--warn); background: var(--warn-bg); }
+
+.step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; }
+.step > .n { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; font-size: 17px; }
+.step > .body { display: grid; gap: 12px; min-width: 0; }
+.why { border-left: 3px solid var(--accent); padding: 8px 14px; background: var(--surface); border-radius: 0 6px 6px 0; color: var(--muted); }
+.why strong { color: var(--fg); }
+.note { border-left: 3px solid var(--warn); background: var(--warn-bg); padding: 12px 14px; border-radius: 0 6px 6px 0; }
+.note p { max-width: none; }
+.files { font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); }
+.mermaid { background: var(--surface); border: 1px solid var(--line); }
+@media (max-width: 520px) { .step { grid-template-columns: 1fr; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Final Project FWD · Front End</span>
+  <h1>Implementasi Frontend React</h1>
+  <p class="lede">Dokumen ini menjelaskan langkah demi langkah pembuatan folder <code>frontend/</code> berdasarkan perancangan di <code>rules/cek-requirement-dan-perancangan.html</code>. Nama project, file, dan komentar kode memakai bahasa Inggris. Penjelasan memakai bahasa Indonesia.</p>
+  <div class="meta"><span>15 Oktober 2026</span><span>Project: booking-service-web</span><span>React 18 · Vite 6 · Tailwind 3</span></div>
+</header>
+
+<section>
+  <h2>Ringkasan hasil</h2>
+  <ul>
+    <li>Folder baru <code>frontend/</code> berisi 72 file sumber: 13 halaman, 25 komponen, dan 8 file API.</li>
+    <li>Ada tiga area: <strong>publik</strong> (beranda, katalog, detail + pilih slot, login, register), <strong>pelanggan</strong> (booking saya, detail + batal, profil), dan <strong>admin panel</strong> (dashboard, booking, layanan, kategori, jadwal, pelanggan, laporan).</li>
+    <li><code>npm run build</code> sukses. Halaman admin dipisah ke bundle sendiri, sehingga pelanggan tidak mengunduh library grafik.</li>
+    <li>Saya menguji integrasi dengan backend sungguhan dan database PostgreSQL sementara di port 55432, lalu mematikannya kembali. Database lokal Anda tidak disentuh.</li>
+    <li>Perubahan di luar <code>frontend/</code> hanya satu: service <code>web</code> ditambahkan di <code>backend/docker-compose.yml</code>.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Langkah pengerjaan</h2>
+
+  <div class="step"><span class="n">1</span><div class="body">
+    <h3>Setup project Vite + Tailwind</h3>
+    <p>Project dibuat manual, tidak memakai <code>create-vite</code> interaktif, supaya setiap file konfigurasi bisa dijelaskan. Dependency yang dipakai:</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Package</th><th>Fungsi</th></tr></thead>
+      <tbody>
+        <tr><td><code>react</code>, <code>react-dom</code></td><td>Library UI</td></tr>
+        <tr><td><code>react-router-dom</code></td><td>Routing halaman dan route guard</td></tr>
+        <tr><td><code>@tanstack/react-query</code></td><td>Mengelola data dari API: cache, loading, error, refetch</td></tr>
+        <tr><td><code>zustand</code></td><td>State global untuk user login dan token</td></tr>
+        <tr><td><code>axios</code></td><td>HTTP client dengan interceptor</td></tr>
+        <tr><td><code>react-hook-form</code>, <code>zod</code>, <code>@hookform/resolvers</code></td><td>Form dan validasi</td></tr>
+        <tr><td><code>recharts</code></td><td>Grafik di dashboard dan laporan</td></tr>
+        <tr><td><code>react-hot-toast</code></td><td>Notifikasi sukses/gagal</td></tr>
+        <tr><td><code>tailwindcss</code>, <code>postcss</code>, <code>autoprefixer</code></td><td>Styling dan responsive design</td></tr>
+      </tbody>
+    </table></div>
+    <p class="files">package.json · vite.config.js · tailwind.config.js · postcss.config.js · index.html · .env.example · .gitignore · public/favicon.svg</p>
+    <div class="why"><strong>Kenapa:</strong> warna brand (teal) didefinisikan sekali di <code>tailwind.config.js</code> sebagai <code>brand-50</code> sampai <code>brand-900</code>, sehingga semua komponen memakai palet yang sama. Font Plus Jakarta Sans dimuat dari Google Fonts.</div>
+  </div></div>
+
+  <div class="step"><span class="n">2</span><div class="body">
+    <h3>Lapisan API dan interceptor token</h3>
+    <p>Semua komunikasi ke backend ada di folder <code>src/api/</code>. File <code>client.js</code> membuat instance Axios. Setiap modul backend punya satu file, misalnya <code>services.api.js</code> dan <code>bookings.api.js</code>.</p>
+<pre><code>// src/api/client.js (ringkas)
+api.interceptors.request.use((config) =&gt; {
+  const { accessToken } = useAuthStore.getState();
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  return config;
+});
+
+// 401 -&gt; refresh sekali -&gt; ulangi request; gagal -&gt; hapus sesi
+api.interceptors.response.use((res) =&gt; res, async (error) =&gt; { ... });</code></pre>
+    <ul>
+      <li><code>getData</code> dan <code>getList</code> membuka envelope backend <code>{ success, message, data, meta }</code>. Halaman cukup menerima <code>data</code> atau <code>{ items, meta }</code>.</li>
+      <li>Beberapa request yang gagal 401 secara bersamaan berbagi <strong>satu</strong> panggilan <code>/auth/refresh</code>. Ini penting karena backend merotasi refresh token: token lama langsung dihapus setelah dipakai.</li>
+      <li>Download CSV memakai <code>responseType: 'blob'</code> karena endpoint butuh header token, sehingga tidak bisa memakai link biasa.</li>
+    </ul>
+    <p class="files">api/client.js · auth.api.js · categories.api.js · services.api.js · schedules.api.js · bookings.api.js · users.api.js · reports.api.js</p>
+  </div></div>
+
+  <div class="step"><span class="n">3</span><div class="body">
+    <h3>Auth store dan pemulihan sesi</h3>
+    <p><code>store/authStore.js</code> (Zustand) menyimpan <code>user</code>, <code>accessToken</code>, dan <code>refreshToken</code>. Hanya <code>user</code> dan <code>refreshToken</code> yang disimpan ke localStorage. Access token cukup di memori karena umurnya hanya 15 menit.</p>
+    <p>Saat halaman di-reload, <code>hooks/useSessionBootstrap.js</code> menukar refresh token dengan access token baru <strong>sebelum</strong> aplikasi dirender. Tanpa langkah ini, halaman admin yang memakai <code>optionalAuthenticate</code> (misalnya daftar layanan) akan dimuat sebagai tamu dan hanya menampilkan layanan aktif.</p>
+    <p class="files">store/authStore.js · hooks/useSessionBootstrap.js · hooks/useLogout.js · App.jsx · main.jsx</p>
+  </div></div>
+
+  <div class="step"><span class="n">4</span><div class="body">
+    <h3>Hooks data: TanStack Query, mutasi, dan filter di URL</h3>
+    <ul>
+      <li><code>hooks/queries.js</code> berisi semua query, seperti <code>useServices</code>, <code>useMyBookings</code>, dan <code>useReportSummary</code>. Query key dikumpulkan di objek <code>queryKeys</code> supaya mutasi tahu cache mana yang harus di-refresh.</li>
+      <li><code>hooks/useApiMutation.js</code> membungkus <code>useMutation</code>: toast sukses, toast error, dan <code>invalidateQueries</code>. Error 422 tidak memunculkan toast karena pesannya ditampilkan di bawah field form.</li>
+      <li><code>hooks/useUrlFilters.js</code> menyimpan search, filter, dan page di URL (<code>?status=PENDING&amp;page=2</code>). Halaman bisa di-refresh atau dibagikan tanpa kehilangan filter. Mengubah filter otomatis kembali ke halaman 1.</li>
+      <li><code>hooks/useDebounce.js</code> menunda pencarian 400 ms supaya tidak ada request di setiap ketikan.</li>
+    </ul>
+    <div class="tbl"><table>
+      <thead><tr><th>Jenis state</th><th>Tempat</th><th>Contoh</th></tr></thead>
+      <tbody>
+        <tr><td>Data dari API</td><td>TanStack Query</td><td>Layanan, slot, booking, laporan</td></tr>
+        <tr><td>Global client</td><td>Zustand</td><td>User login, token</td></tr>
+        <tr><td>Filter &amp; pagination</td><td>URL query</td><td>search, categoryId, status, period, page</td></tr>
+        <tr><td>UI lokal</td><td><code>useState</code></td><td>Modal terbuka, slot dipilih, catatan</td></tr>
+      </tbody>
+    </table></div>
+  </div></div>
+
+  <div class="step"><span class="n">5</span><div class="body">
+    <h3>Komponen UI yang dipakai ulang</h3>
+    <p>Komponen dasar di <code>components/ui/</code> dipakai oleh semua halaman, sehingga tampilan konsisten dan kode halaman tetap pendek.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Komponen</th><th>Kegunaan</th></tr></thead>
+      <tbody>
+        <tr><td><code>Button</code></td><td>Varian primary/secondary/danger/ghost, state loading</td></tr>
+        <tr><td><code>FormField</code></td><td><code>Input</code>, <code>Select</code>, <code>Textarea</code> dengan label dan pesan error, kompatibel dengan <code>register()</code></td></tr>
+        <tr><td><code>DataTable</code></td><td>Tabel berbasis konfigurasi kolom, sudah menangani loading, error, dan kosong</td></tr>
+        <tr><td><code>Modal</code>, <code>ConfirmDialog</code></td><td>Dialog dengan tombol Escape dan klik di luar untuk menutup</td></tr>
+        <tr><td><code>Pagination</code>, <code>SearchInput</code></td><td>Navigasi halaman dan pencarian dengan debounce</td></tr>
+        <tr><td><code>Badge</code>, <code>StatusBadge</code></td><td>Warna status sesuai enum backend di <code>utils/constants.js</code></td></tr>
+        <tr><td><code>States</code>, <code>Spinner</code></td><td><code>EmptyState</code>, <code>ErrorState</code> dengan tombol coba lagi, dan <code>PageLoader</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>Komponen domain: <code>Navbar</code> (menu mobile), <code>ServiceCard</code>, <code>SlotPicker</code> (pilih tanggal lalu jam), <code>BookingInfo</code> (dipakai halaman pelanggan dan admin), <code>BookingTimeline</code>, <code>DateRangeFilter</code>, <code>StatCard</code>, grafik <code>RevenueChart</code> dan <code>HorizontalBarChart</code>, serta form modal admin.</p>
+  </div></div>
+
+  <div class="step"><span class="n">6</span><div class="body">
+    <h3>Routing dan route guard</h3>
+<pre class="mermaid">
+flowchart LR
+  A[Request halaman] --> B{Sudah login?}
+  B -- Belum --> C[/login + simpan halaman asal/]
+  B -- Sudah --> D{Role sesuai?}
+  D -- Tidak --> E[/forbidden 403/]
+  D -- Ya --> F[Render halaman]
+  C -- login sukses --> F
+</pre>
+    <ul>
+      <li><code>ProtectedRoute</code> menerima prop <code>roles</code>, misalnya <code>roles={['ADMIN']}</code>. Komponen ini menggantikan <code>RoleRoute</code> yang ada di perancangan, supaya cukup satu komponen.</li>
+      <li><code>GuestRoute</code> mencegah user yang sudah login membuka halaman login dan register.</li>
+      <li>Setelah login, user dikembalikan ke halaman asal. Contohnya, tamu yang menekan "Log in to book" kembali ke detail layanan.</li>
+      <li>Halaman admin dimuat dengan <code>React.lazy</code>.</li>
+    </ul>
+    <p class="files">routes/AppRoutes.jsx · routes/ProtectedRoute.jsx · routes/GuestRoute.jsx · layouts/MainLayout.jsx · layouts/AdminLayout.jsx</p>
+  </div></div>
+
+  <div class="step"><span class="n">7</span><div class="body">
+    <h3>Halaman publik</h3>
+    <ul>
+      <li><strong>HomePage</strong>: hero, chip kategori yang menuju katalog terfilter, 6 layanan terbaru, dan langkah "How it works".</li>
+      <li><strong>ServicesPage</strong>: pencarian (nama, deskripsi, kategori), filter kategori, harga min/max, urutan, dan pagination 9 item.</li>
+      <li><strong>ServiceDetailPage</strong>: info layanan, navigasi slot per minggu, <code>SlotPicker</code>, dan panel ringkasan booking. Konfirmasi booking dibuat di halaman ini, bukan halaman terpisah, karena endpoint detail jadwal hanya untuk admin.</li>
+      <li><strong>LoginPage / RegisterPage</strong>: validasi Zod yang sama dengan backend, error 422 ditampilkan per field, dan tombol isi akun demo untuk mentor.</li>
+    </ul>
+  </div></div>
+
+  <div class="step"><span class="n">8</span><div class="body">
+    <h3>Halaman pelanggan</h3>
+    <ul>
+      <li><strong>MyBookingsPage</strong>: tab status (All, Pending, Confirmed, Completed, Cancelled), filter periode, dan pagination.</li>
+      <li><strong>BookingDetailPage</strong>: detail, status pembayaran, riwayat status, dan tombol batal. Tombol hanya muncul bila status masih PENDING/CONFIRMED dan jadwal masih lebih dari 2 jam lagi, sama dengan aturan di <code>bookings.rules.js</code>.</li>
+      <li><strong>ProfilePage</strong>: ubah nama/telepon dan ganti password dalam dua form terpisah.</li>
+    </ul>
+  </div></div>
+
+  <div class="step"><span class="n">9</span><div class="body">
+    <h3>Admin panel</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Halaman</th><th>Fitur</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard</td><td>4 kartu ringkasan bulan ini, grafik pendapatan harian, jumlah per status, 5 booking yang menunggu konfirmasi</td></tr>
+        <tr><td>Bookings</td><td>Cari kode/nama/email, filter status, layanan, dan tanggal. Detail: ubah status sesuai state machine, catatan, catat pembayaran (cash/transfer/e-wallet)</td></tr>
+        <tr><td>Services</td><td>CRUD lewat modal: kategori, harga, durasi, status, URL gambar. Filter kategori dan status</td></tr>
+        <tr><td>Categories</td><td>CRUD dan jumlah layanan per kategori</td></tr>
+        <tr><td>Schedules</td><td>Tambah satu slot, generate slot massal (rentang tanggal, jam buka-tutup, hari), edit, tutup, dan hapus. Tanggal dan jam dikunci bila slot sudah dibooking</td></tr>
+        <tr><td>Customers</td><td>Cari, filter aktif/nonaktif, detail + 10 booking terakhir, aktifkan/nonaktifkan akun</td></tr>
+        <tr><td>Reports</td><td>Periode atau rentang tanggal, grafik pendapatan per hari/bulan, layanan terlaris, jadwal paling ramai, tanggal teramai, download CSV</td></tr>
+      </tbody>
+    </table></div>
+    <div class="why"><strong>Detail penting:</strong> form modal hanya di-mount saat dibuka (<code>{editing &amp;&amp; &lt;ServiceFormModal /&gt;}</code>). Dengan begitu form selalu mulai dari nilai baru dan tidak membawa sisa input sebelumnya.</div>
+  </div></div>
+
+  <div class="step"><span class="n">10</span><div class="body">
+    <h3>File deployment</h3>
+    <ul>
+      <li><code>vercel.json</code>: semua path diarahkan ke <code>index.html</code>, supaya refresh di <code>/admin/bookings</code> tidak menghasilkan 404.</li>
+      <li><code>Dockerfile</code> dua tahap: build dengan Node, lalu disajikan dengan nginx. <code>VITE_API_URL</code> dikirim sebagai build arg karena Vite menanamkannya saat build.</li>
+      <li><code>nginx.conf</code>: fallback SPA dan cache panjang untuk file di <code>/assets</code>.</li>
+      <li><code>backend/docker-compose.yml</code>: ditambah service <code>web</code> di port 8080, dan <code>CORS_ORIGIN</code> api ditambah <code>http://localhost:8080</code>.</li>
+      <li><code>frontend/README.md</code>: tech stack, cara menjalankan, struktur folder, daftar halaman, alur auth, dan deployment.</li>
+    </ul>
+  </div></div>
+</section>
+
+<section>
+  <h2>Hasil pengujian</h2>
+  <p>Diuji di Chrome dengan backend (port 5055) dan PostgreSQL sementara yang sudah di-migrate dan di-seed.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Skenario</th><th>Hasil</th></tr></thead>
+    <tbody>
+      <tr><td>Build produksi <code>vite build</code></td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Detail layanan + slot tampil untuk tamu</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Login pelanggan → diarahkan ke <code>/my-bookings</code>, 7 booking seed tampil</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Pilih slot → Book now → detail booking PENDING + log status</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Batalkan booking → status CANCELLED, riwayat bertambah, tombol batal hilang</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Pelanggan membuka <code>/admin</code> → halaman 403</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Reload halaman → sesi pulih lewat refresh token, data tetap dimuat</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Logout → localStorage dibersihkan, kembali ke login</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Login admin → dashboard menampilkan ringkasan, grafik, dan booking pending</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Enam halaman admin memuat data tanpa error</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Kategori: nama kosong ditolak di form, duplikat ditolak backend, nama baru tersimpan</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Admin konfirmasi booking lalu catat pembayaran cash</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Generate slot: validasi "Service is required", lalu request berhasil (slot yang bentrok dengan data seed dilewati)</td><td><span class="chip ok">Lulus</span></td></tr>
+      <tr><td>Tombol download CSV di browser</td><td><span class="chip warn">Belum diklik</span></td></tr>
+      <tr><td>Tampilan di lebar HP (375px)</td><td><span class="chip warn">Belum dicek visual</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><strong>Yang belum diverifikasi:</strong> download CSV tidak saya klik karena akan mengunduh file ke komputer Anda. Endpoint-nya sudah lulus di pengujian backend sebelumnya. Screenshot Chrome macet setelah beberapa langkah, sehingga tampilan mobile belum dicek secara visual. Layout sudah memakai breakpoint Tailwind (<code>sm</code>, <code>md</code>, <code>lg</code>), sidebar admin menjadi drawer, dan navbar punya menu hamburger. Cek sendiri lewat DevTools → Toggle device toolbar.</p></div>
+</section>
+
+<section>
+  <h2>Perbedaan dari perancangan</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Perancangan</th><th>Implementasi</th><th>Alasan</th></tr></thead>
+    <tbody>
+      <tr><td><code>api/axios.js</code></td><td><code>api/client.js</code></td><td>Menghindari nama yang sama dengan package <code>axios</code></td></tr>
+      <tr><td><code>RoleRoute.jsx</code> terpisah</td><td><code>ProtectedRoute roles={[...]}</code></td><td>Satu komponen untuk cek login dan role</td></tr>
+      <tr><td><code>PublicLayout</code> + <code>UserLayout</code></td><td><code>MainLayout</code></td><td>Tampilan keduanya sama. Menu berubah sesuai role di Navbar</td></tr>
+      <tr><td>Halaman <code>BookingCreate</code></td><td>Panel booking di detail layanan</td><td>Endpoint <code>GET /schedules/:id</code> khusus admin. Alur juga lebih pendek</td></tr>
+      <tr><td><code>hooks/useServices.js</code> dst.</td><td>Satu file <code>hooks/queries.js</code></td><td>Query key dan pola query terkumpul di satu tempat</td></tr>
+      <tr><td>Bahasa UI belum ditentukan</td><td>Bahasa Inggris</td><td>Konsisten dengan pesan error dari backend</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Cara menjalankan</h2>
+<pre><code># terminal 1 - backend (database lokal harus sudah di-migrate dan di-seed)
+cd backend
+npm run dev                  # http://localhost:5000
+
+# terminal 2 - frontend
+cd frontend
+npm install                  # sudah dijalankan sekali
+cp .env.example .env         # .env sudah dibuat, isinya VITE_API_URL=http://localhost:5000/api/v1
+npm run dev                  # http://localhost:5173</code></pre>
+  <p>Akun demo: <code>admin@booking.com / Admin12345</code> dan <code>budi@example.com / User12345</code>.</p>
+</section>
+
+<section>
+  <h2>Langkah berikutnya</h2>
+  <ol>
+    <li>Jalankan migrate + seed di PostgreSQL lokal Anda, lalu coba semua alur di atas sendiri.</li>
+    <li>Pelajari file inti sampai bisa dijelaskan: <code>api/client.js</code>, <code>hooks/queries.js</code>, <code>hooks/useApiMutation.js</code>, <code>routes/ProtectedRoute.jsx</code>, <code>pages/public/ServiceDetailPage.jsx</code>. Kebijakan guideline menyebut nilai 0 bila project terdeteksi 100% dibuat AI.</li>
+    <li>Pindahkan <code>.env.local</code> keluar dari folder project, lalu <code>git init</code> dan push backend + frontend ke GitHub.</li>
+    <li>Deploy: database (Neon/Supabase), backend (Render/Railway), frontend (Vercel). Set <code>VITE_API_URL</code> dan <code>CORS_ORIGIN</code>.</li>
+    <li>README root, Postman collection, dan PPT.</li>
+  </ol>
+</section>
+
+</div>

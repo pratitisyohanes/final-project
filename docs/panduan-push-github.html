@@ -1,0 +1,223 @@
+<title>Push Project ke GitHub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: single-column runbook with numbered stages and checkpoints */
+:root {
+  --bg: #f6f8fa; --surface: #ffffff; --ink: #17212b; --muted: #56636f; --line: #d9e0e6;
+  --accent: #0f6e74; --accent-soft: #e3f1f1; --code-bg: #eef2f5; --term-bg: #18222b; --term-ink: #dbe6ee; --term-dim: #8fa3b3;
+  --ok: #1f7a46; --ok-soft: #e4f3ea; --warn: #9a5b00; --warn-soft: #fbf0dc; --bad: #b1322a; --bad-soft: #fbe6e4;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11171c; --surface: #182129; --ink: #e4eaef; --muted: #9aa8b4; --line: #2b3742;
+    --accent: #5cc2c6; --accent-soft: #163338; --code-bg: #1f2a33; --term-bg: #0b1116; --term-ink: #dbe6ee; --term-dim: #7d91a1;
+    --ok: #6fd39a; --ok-soft: #173326; --warn: #f0b85a; --warn-soft: #3a2c12; --bad: #f08a80; --bad-soft: #3d1c1a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11171c; --surface: #182129; --ink: #e4eaef; --muted: #9aa8b4; --line: #2b3742;
+  --accent: #5cc2c6; --accent-soft: #163338; --code-bg: #1f2a33; --term-bg: #0b1116; --term-ink: #dbe6ee; --term-dim: #7d91a1;
+  --ok: #6fd39a; --ok-soft: #173326; --warn: #f0b85a; --warn-soft: #3a2c12; --bad: #f08a80; --bad-soft: #3d1c1a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.65;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+main { max-width: 880px; margin: 0 auto; min-width: 0; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.2; }
+h1 { font-size: clamp(28px, 4.2vw, 40px); margin: 0 0 12px; }
+h2 { font-size: 23px; margin: 0 0 14px; display: flex; gap: 12px; align-items: baseline; }
+h2 .n { font-family: var(--font-mono); font-size: 15px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 2px 8px; flex-shrink: 0; }
+h3 { font-size: 17px; margin: 20px 0 8px; }
+section { margin-bottom: 44px; }
+p { margin: 0 0 14px; max-width: 72ch; }
+.lede { font-size: 18px; color: var(--muted); }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.term { margin: 0 0 16px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.term .where { font-family: var(--font-mono); font-size: 12px; background: var(--code-bg); color: var(--muted); padding: 6px 14px; border-bottom: 1px solid var(--line); }
+.term pre { margin: 0; background: var(--term-bg); color: var(--term-ink); font-family: var(--font-mono); font-size: 13.5px; line-height: 1.6; padding: 14px 16px; overflow-x: auto; }
+.term pre .c { color: var(--term-dim); }
+.scroll { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--code-bg); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.callout { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 14px 18px; margin: 0 0 18px; font-size: 15px; }
+.callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+.callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+.callout strong { display: block; margin-bottom: 4px; }
+.callout p:last-child { margin-bottom: 0; }
+.check { border: 1px solid var(--ok); background: var(--ok-soft); border-radius: 10px; padding: 12px 16px; font-size: 15px; }
+.check strong { color: var(--ok); }
+.check ul { margin: 6px 0 0; }
+ul, ol { padding-left: 22px; max-width: 74ch; }
+li { margin-bottom: 6px; }
+.pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">github.com/pratitisyohanes/final-project</p>
+    <h1>Mengisi repo GitHub yang masih kosong</h1>
+    <p class="lede">Langkah dari folder <code>fin-pro</code> di laptop sampai semua kode tampil di GitHub, tanpa ikut mengunggah satu pun file <code>.env</code>.</p>
+  </header>
+
+  <section>
+    <h2><span class="n">0</span>Fetch, pull, atau push?</h2>
+    <p>Repo Anda di GitHub masih kosong: belum ada branch dan commit. Tidak ada yang bisa di-<em>fetch</em> atau di-<em>pull</em>. Arah kerjanya justru sebaliknya: kode di laptop dikirim ke GitHub dengan <strong>push</strong>. Di halaman GitHub pada gambar Anda, ini adalah bagian <em>"…or create a new repository on the command line"</em>, karena folder <code>fin-pro</code> belum menjadi repo git.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Perintah</th><th>Arah</th><th>Kapan dipakai</th></tr></thead>
+      <tbody>
+        <tr><td><code>git push</code></td><td>laptop → GitHub</td><td>Sekarang, dan setiap selesai commit</td></tr>
+        <tr><td><code>git fetch</code></td><td>GitHub → laptop (hanya unduh, tidak mengubah file)</td><td>Nanti, bila ada perubahan di GitHub (misalnya edit README lewat web)</td></tr>
+        <tr><td><code>git pull</code></td><td>GitHub → laptop (unduh + gabungkan)</td><td>Sama seperti fetch, sekaligus menggabungkan perubahan ke file Anda</td></tr>
+      </tbody>
+    </table></div>
+    <p>Jangan klik "creating a new file" atau menambah README lewat web sebelum push pertama. Kalau itu dilakukan, repo jadi tidak kosong dan push pertama akan ditolak (lihat bagian 7).</p>
+  </section>
+
+  <section>
+    <h2><span class="n">1</span>Semua .env sudah diabaikan</h2>
+    <p><code>.gitignore</code> di root, <code>backend/</code>, dan <code>frontend/</code> sudah diperbarui dengan aturan yang sama:</p>
+<div class="term"><div class="where">.gitignore (root)</div><pre><span class="c"># Secrets: every .env file in every folder, except the templates</span>
+.env
+.env.*
+*.env
+!.env.example</pre></div>
+    <div class="scroll"><table>
+      <thead><tr><th>File di project</th><th>Hasil uji</th><th>Isi</th></tr></thead>
+      <tbody>
+        <tr><td><code>.env.local</code></td><td><span class="pill bad">diabaikan</span></td><td>Kredensial kantor KM Online</td></tr>
+        <tr><td><code>docs/.env</code></td><td><span class="pill bad">diabaikan</span></td><td>Kredensial kantor KM Online</td></tr>
+        <tr><td><code>backend/.env</code>, <code>backend/.env.backup</code></td><td><span class="pill bad">diabaikan</span></td><td>Password PostgreSQL lokal, JWT secret</td></tr>
+        <tr><td><code>frontend/.env</code></td><td><span class="pill bad">diabaikan</span></td><td>Alamat API</td></tr>
+        <tr><td><code>backend/.env.example</code>, <code>frontend/.env.example</code></td><td><span class="pill ok">ikut commit</span></td><td>Template tanpa rahasia, untuk cara run di README</td></tr>
+      </tbody>
+    </table></div>
+    <p>Aturan ini diuji di repo percobaan dengan nama file yang sama. Aturan yang sama juga dipasang di <code>backend/.dockerignore</code>, supaya <code>.env</code> tidak ikut masuk image Docker.</p>
+    <div class="callout warn"><strong>Tetap disarankan: pindahkan file kantor</strong><p><code>.gitignore</code> hanya melindungi dari git. File <code>docs/.env</code> dan <code>.env.local</code> masih bisa ikut ter-zip, ter-upload ke Drive, atau tersinkron OneDrive. Pindahkan keluar dari <code>fin-pro</code>:</p></div>
+<div class="term"><div class="where">Laptop, PowerShell</div><pre>New-Item -ItemType Directory -Force "$HOME\Documents\kmonline-env"
+Move-Item "C:\Users\PT.CTI\OneDrive\Pictures\dibimbing\final-project\fin-pro\docs\.env" "$HOME\Documents\kmonline-env\docs.env"
+Move-Item "C:\Users\PT.CTI\OneDrive\Pictures\dibimbing\final-project\fin-pro\.env.local" "$HOME\Documents\kmonline-env\env.local"</pre></div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>Cek git dan identitas</h2>
+<div class="term"><div class="where">Laptop, terminal VS Code (PowerShell)</div><pre>git --version                    <span class="c"># sudah terpasang: 2.54</span>
+git config --global user.name    <span class="c"># Yohanes Anom Pratitis</span>
+git config --global user.email   <span class="c"># pratitisyohanes@gmail.com</span></pre></div>
+    <p>Nama dan email ini tercatat di setiap commit. Email sebaiknya sama dengan email akun GitHub, supaya commit tampil atas nama Anda.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>Jadikan folder fin-pro repo git</h2>
+<div class="term"><div class="where">Laptop, PowerShell</div><pre>cd C:\Users\PT.CTI\OneDrive\Pictures\dibimbing\final-project\fin-pro
+git init              <span class="c"># membuat folder tersembunyi .git</span>
+git branch -M main    <span class="c"># nama branch utama: main (dipakai juga oleh workflow deploy)</span></pre></div>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>Tambahkan file, lalu periksa sebelum commit</h2>
+<div class="term"><div class="where">Laptop, PowerShell</div><pre>git add .
+git status
+
+<span class="c"># Pemeriksaan khusus: harus tampil HANYA dua file .env.example</span>
+git status --short | Select-String "env"
+
+<span class="c"># Tanya git kenapa file rahasia diabaikan (harus menampilkan aturan .gitignore untuk tiap file)</span>
+git check-ignore -v backend/.env backend/.env.backup frontend/.env</pre></div>
+    <p>Peringatan <code>LF will be replaced by CRLF</code> boleh diabaikan. Itu hanya soal format akhir baris di Windows.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Harus ada di <code>git status</code></th><th>Tidak boleh ada</th></tr></thead>
+      <tbody>
+        <tr><td><code>.gitignore</code>, <code>.github/workflows/deploy.yml</code>, <code>backend/src/…</code>, <code>backend/package.json</code>, <code>backend/package-lock.json</code>, <code>backend/.env.example</code>, <code>frontend/src/…</code>, <code>frontend/package.json</code>, <code>frontend/.env.example</code>, <code>deploy/</code>, <code>docs/*.html</code>, <code>rules/</code></td><td>Semua <code>.env</code> selain <code>.env.example</code>, <code>node_modules/</code>, <code>dist/</code>, <code>coverage/</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>Bila ada file yang salah masuk: <code>git rm --cached nama-file</code>, perbaiki <code>.gitignore</code>, lalu <code>git add .</code> lagi. Selama belum di-push, kesalahan ini belum keluar dari laptop.</p>
+    <div class="check"><strong>Titik cek 4</strong><ul><li><code>git status --short | Select-String "env"</code> hanya menampilkan <code>backend/.env.example</code> dan <code>frontend/.env.example</code> (plus file yang namanya kebetulan mengandung "env", seperti <code>src/config/env.js</code>).</li></ul></div>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>Commit</h2>
+    <h3>Cara sederhana: satu commit</h3>
+<div class="term"><div class="where">Laptop, PowerShell</div><pre>git commit -m "feat: service booking system (Express API + React frontend)"</pre></div>
+    <h3>Cara yang lebih baik untuk penilaian: beberapa commit bertahap</h3>
+    <p>Riwayat yang bertahap menunjukkan proses pengerjaan ke mentor. Jalankan berurutan setelah <code>git add .</code> di bagian 4 dibatalkan dulu dengan <code>git reset</code>:</p>
+<div class="term"><div class="where">Laptop, PowerShell</div><pre>git reset    <span class="c"># batalkan git add . (file tidak berubah)</span>
+
+git add .gitignore backend/package.json backend/package-lock.json backend/.env.example backend/.gitignore backend/.sequelizerc
+git commit -m "chore: backend project setup"
+
+git add backend/src/models backend/src/database backend/src/config
+git commit -m "feat: database models, migrations and seeder"
+
+git add backend/src/utils backend/src/middlewares
+git commit -m "feat: auth, validation and error handling middleware"
+
+git add backend/src backend/tests
+git commit -m "feat: REST API modules with swagger docs and tests"
+
+git add frontend
+git commit -m "feat: react frontend with admin panel"
+
+git add backend/Dockerfile backend/docker-compose.yml backend/.dockerignore backend/ecosystem.config.js .github deploy
+git commit -m "chore: docker, pm2, nginx and CI/CD deployment"
+
+git add .
+git commit -m "docs: design, implementation and deployment notes"
+
+git log --oneline     <span class="c"># lihat riwayat yang terbentuk</span></pre></div>
+  </section>
+
+  <section>
+    <h2><span class="n">6</span>Hubungkan ke GitHub dan push</h2>
+<div class="term"><div class="where">Laptop, PowerShell</div><pre>git remote add origin https://github.com/pratitisyohanes/final-project.git
+git remote -v         <span class="c"># cek: origin menunjuk ke repo Anda (fetch dan push)</span>
+
+git push -u origin main</pre></div>
+    <ul>
+      <li><code>origin</code> adalah nama panggilan untuk alamat repo GitHub.</li>
+      <li><code>-u</code> mengingat pasangan <code>main</code> ↔ <code>origin/main</code>, jadi push berikutnya cukup <code>git push</code>.</li>
+      <li>Push pertama membuka jendela <strong>Git Credential Manager</strong>. Pilih <em>Sign in with your browser</em>, login GitHub, lalu izinkan. Login ini disimpan, jadi tidak perlu diulang.</li>
+    </ul>
+    <div class="check"><strong>Titik cek 6</strong><ul><li>Refresh halaman GitHub: folder <code>backend</code>, <code>frontend</code>, <code>docs</code>, <code>deploy</code>, <code>rules</code>, <code>.github</code> muncul.</li><li>Cari di GitHub (tekan <kbd>t</kbd> di halaman repo, ketik <code>.env</code>): hanya dua <code>.env.example</code> yang muncul.</li></ul></div>
+    <div class="callout bad"><strong>Bila ternyata ada file .env yang ikut ter-push</strong><p>Menghapus file di commit berikutnya tidak cukup, karena file itu tetap tersimpan di riwayat git. Ganti semua password dan secret di file itu, lalu bersihkan riwayat atau buat ulang repo. Kabari saya bila ini terjadi.</p></div>
+  </section>
+
+  <section>
+    <h2><span class="n">7</span>Setelah push: Actions, fetch, dan kerja harian</h2>
+    <h3>GitHub Actions langsung berjalan</h3>
+    <p>Push ke <code>main</code> menjalankan <code>.github/workflows/deploy.yml</code>. Job <em>Backend tests</em> dan <em>Frontend build</em> akan hijau (test tidak butuh database). Job <em>Deploy to VPS</em> akan <strong>merah</strong> sampai 5 secret diisi di <em>Settings → Secrets and variables → Actions</em>: <code>VPS_HOST</code>, <code>VPS_USER</code>, <code>VPS_SSH_KEY</code>, <code>VPS_PORT</code>, <code>APP_URL</code>. Merah ini tidak merusak apa pun. Panduan secret ada di <code>rules/vps/lanjutan-swap-domain-github.md</code> bagian 7.</p>
+    <h3>Kerja harian</h3>
+<div class="term"><div class="where">Laptop, PowerShell</div><pre>git status                         <span class="c"># apa yang berubah</span>
+git add .
+git commit -m "fix: deskripsi singkat perubahan"
+git push</pre></div>
+    <h3>Kapan butuh fetch / pull</h3>
+<div class="term"><div class="where">Laptop, PowerShell</div><pre>git fetch origin                   <span class="c"># lihat apakah GitHub punya commit baru</span>
+git status                         <span class="c"># "Your branch is behind 'origin/main' by 1 commit"</span>
+git pull --rebase origin main      <span class="c"># ambil dan taruh commit lokal Anda di atasnya</span></pre></div>
+    <p>Ini perlu bila Anda mengedit file langsung di web GitHub, atau bila muncul error <code>! [rejected] main -> main (fetch first)</code> saat push. Error itu berarti GitHub punya commit yang belum ada di laptop.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">8</span>Berikutnya: README root</h2>
+    <p>Guideline meminta repository memuat <strong>ERD, tech stack, dan cara run project</strong>. Bahannya sudah ada di <code>docs/analisa-kesesuaian-guideline.html</code> (bagian 4, 6, dan 11). Setelah <code>README.md</code> dibuat: <code>git add README.md</code>, <code>git commit -m "docs: project readme"</code>, <code>git push</code>.</p>
+  </section>
+
+  <footer>Aturan <code>.gitignore</code> diuji 18 Oktober 2026 di repo percobaan dengan nama file yang sama seperti di project. Disimpan sebagai <code>docs/panduan-push-github.html</code>.</footer>
+</main>

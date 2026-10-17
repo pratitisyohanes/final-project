@@ -1,0 +1,740 @@
+<title>Migrasi Prisma ke Sequelize</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: dokumen teknis dua kolom, daftar isi lengket di kiri (desktop), satu kolom di ponsel */
+:root {
+  --bg: #f6f8f8;
+  --surface: #ffffff;
+  --fg: #182326;
+  --muted: #56666a;
+  --line: #d8e1e2;
+  --accent: #0d6b70;
+  --accent-soft: #e0f0f0;
+  --code-bg: #eef3f3;
+  --warn: #9a5b00;
+  --warn-soft: #fdf1dc;
+  --ok: #2c6e2f;
+  --ok-soft: #e3f2e1;
+  --danger: #b3261e;
+  --danger-soft: #fbe4e2;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1617; --surface: #151f21; --fg: #dde8e9; --muted: #93a6a9; --line: #29393c;
+    --accent: #5cc4c9; --accent-soft: #163538; --code-bg: #1a2729;
+    --warn: #f0b45a; --warn-soft: #33270f; --ok: #82cf86; --ok-soft: #17301a; --danger: #f28b82; --danger-soft: #3a1a18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1617; --surface: #151f21; --fg: #dde8e9; --muted: #93a6a9; --line: #29393c;
+  --accent: #5cc4c9; --accent-soft: #163538; --code-bg: #1a2729;
+  --warn: #f0b45a; --warn-soft: #33270f; --ok: #82cf86; --ok-soft: #17301a; --danger: #f28b82; --danger-soft: #3a1a18;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 80px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 48px; }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14.5px; max-height: calc(100vh - 48px); overflow-y: auto; }
+nav.toc .lbl { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+nav.toc a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; border-left: 2px solid transparent; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); background: var(--accent-soft); border-left-color: var(--accent); outline: none; }
+main { min-width: 0; }
+header.hero { padding-bottom: 24px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+h1 { font-family: var(--font-display); font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 8px 0 12px; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-size: 28px; line-height: 1.2; margin: 0 0 14px; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-size: 20px; margin: 28px 0 10px; }
+h4 { font-size: 16px; margin: 18px 0 6px; }
+section { padding-block: 40px 8px; scroll-margin-top: 16px; }
+section + section { border-top: 1px solid var(--line); }
+p, li { max-width: 74ch; }
+.lead { font-size: 19px; color: var(--muted); max-width: 68ch; margin: 0; }
+a { color: var(--accent); }
+code { font-family: var(--font-mono); font-size: .86em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre.code { font-family: var(--font-mono); font-size: 13.5px; line-height: 1.55; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 12px 0 18px; }
+pre.code code { background: none; padding: 0; font-size: inherit; }
+.cm { color: var(--muted); }
+.tbl { overflow-x: auto; margin: 12px 0 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--code-bg); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.m { font-family: var(--font-mono); font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+.GET { background: var(--ok-soft); color: var(--ok); }
+.POST { background: var(--accent-soft); color: var(--accent); }
+.PATCH { background: var(--warn-soft); color: var(--warn); }
+.DELETE { background: var(--danger-soft); color: var(--danger); }
+.pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.pass { background: var(--ok-soft); color: var(--ok); }
+.pill.new { background: var(--accent-soft); color: var(--accent); }
+.pill.edit { background: var(--warn-soft); color: var(--warn); }
+.note { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--surface); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+.note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+.note strong:first-child { display: block; margin-bottom: 2px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 20px 0 0; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.stat b { display: block; font-family: var(--font-display); font-size: 28px; line-height: 1.1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 14px; color: var(--muted); }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 14px 0 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+.card h4 { margin: 0 0 6px; color: var(--accent); }
+.card p, .card ul { margin: 0; font-size: 15px; }
+.card ul { padding-left: 18px; }
+.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0 20px; }
+ol.steps { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 0; counter-reset: s; }
+ol.steps > li { counter-increment: s; position: relative; padding: 0 0 22px 52px; max-width: none; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+ol.steps > li::after { content: ""; position: absolute; left: 16px; top: 38px; bottom: 4px; width: 2px; background: var(--line); }
+ol.steps > li:last-child::after { display: none; }
+ol.steps h4 { margin: 4px 0 4px; font-size: 17px; }
+ol.steps p { margin: 0 0 6px; }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 16px; padding-inline: 16px; }
+  nav.toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--surface); }
+  nav.toc ol { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+
+<style>
+.cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin: 12px 0 18px; }
+.cols2 > div { min-width: 0; }
+.cols2 .tag { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+.cols2 .tag.before { color: var(--muted); }
+.cols2 .tag.after { color: var(--accent); }
+.cols2 pre.code { margin: 0; height: calc(100% - 22px); }
+.pill.del { background: var(--danger-soft); color: var(--danger); }
+.pill.same { background: var(--code-bg); color: var(--muted); }
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Daftar isi">
+  <div class="lbl">Daftar isi</div>
+  <ol>
+    <li><a href="#ringkasan">1. Ringkasan</a></li>
+    <li><a href="#langkah">2. Step by step</a></li>
+    <li><a href="#file">3. Perubahan file</a></li>
+    <li><a href="#struktur">4. Struktur folder</a></li>
+    <li><a href="#kode">5. Sebelum vs sesudah</a></li>
+    <li><a href="#mvc">6. MVC</a></li>
+    <li><a href="#erd">7. ERD &amp; database</a></li>
+    <li><a href="#pipeline">8. Pipeline</a></li>
+    <li><a href="#dfd">9. Data flow</a></li>
+    <li><a href="#api">10. Dampak ke response API</a></li>
+    <li><a href="#uji">11. Pengujian</a></li>
+    <li><a href="#jalan">12. Cara menjalankan</a></li>
+    <li><a href="#ingat">13. Hal yang perlu diingat</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Final Project · Sistem Booking dan Manajemen Layanan</div>
+  <h1>Migrasi ORM: Prisma ke Sequelize</h1>
+  <p class="lead">Catatan lengkap perpindahan lapisan database backend dari Prisma ke Sequelize: apa yang dihapus, ditambah, dan diubah, bagaimana MVC, ERD, pipeline, dan data flow terpengaruh, serta bukti bahwa perilaku API tetap sama.</p>
+  <div class="stats">
+    <div class="stat"><b>9</b><span>file model baru</span></div>
+    <div class="stat"><b>8</b><span>file migration baru</span></div>
+    <div class="stat"><b>8</b><span>file service ditulis ulang</span></div>
+    <div class="stat"><b>0</b><span>endpoint berubah</span></div>
+    <div class="stat"><b>25/25</b><span>unit &amp; integration test</span></div>
+    <div class="stat"><b>47/47</b><span>skenario end-to-end</span></div>
+  </div>
+</header>
+
+<!-- 1 -->
+<section id="ringkasan">
+  <h2>1. Ringkasan</h2>
+  <p>Backend sebelumnya memakai <strong>Prisma 6</strong>. Sekarang memakai <strong>Sequelize 6</strong> dengan <strong>sequelize-cli</strong> untuk migration dan seeder. Guideline tidak mewajibkan ORM tertentu. Alasan pindah: Sequelize lebih umum diajarkan di bootcamp Node.js, sehingga lebih mudah didiskusikan dengan mentor.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Aspek</th><th>Sebelum (Prisma)</th><th>Sesudah (Sequelize)</th></tr></thead>
+    <tbody>
+      <tr><td>Definisi model</td><td>1 file <code>prisma/schema.prisma</code></td><td>9 file di <code>src/models/</code></td></tr>
+      <tr><td>Migration</td><td>Dibuat otomatis dari schema (1 file SQL)</td><td>Ditulis manual, 8 file JS di <code>src/database/migrations/</code></td></tr>
+      <tr><td>Seeder</td><td><code>prisma/seed.js</code></td><td><code>src/database/seeders/20261011000001-demo-data.js</code></td></tr>
+      <tr><td>Koneksi</td><td><code>src/config/prisma.js</code></td><td><code>src/models/index.js</code> (app) + <code>src/config/database.js</code> (CLI)</td></tr>
+      <tr><td>Perintah DB</td><td><code>prisma:deploy</code>, <code>db:seed</code></td><td><code>db:migrate</code>, <code>db:seed</code>, <code>db:reset</code>, <code>db:migrate:undo</code></td></tr>
+      <tr><td>Row lock booking</td><td>Raw SQL <code>SELECT … FOR UPDATE</code></td><td><code>lock: transaction.LOCK.UPDATE</code> (bawaan)</td></tr>
+      <tr><td>Soft delete layanan</td><td>Manual (<code>deletedAt: null</code> di setiap query)</td><td>Otomatis (<code>paranoid: true</code>)</td></tr>
+      <tr><td>Sembunyikan password</td><td>Helper <code>sanitizeUser()</code></td><td><code>defaultScope</code> + <code>toJSON()</code> di model User</td></tr>
+      <tr><td>Kolom tanggal slot</td><td>Objek <code>Date</code></td><td>String <code>YYYY-MM-DD</code> (<code>DATEONLY</code>)</td></tr>
+      <tr><td>Endpoint, aturan bisnis, validasi, Swagger</td><td colspan="2">Sama persis</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 2 -->
+<section id="langkah">
+  <h2>2. Langkah migrasi step by step</h2>
+  <ol class="steps">
+    <li><h4>Ganti dependency</h4>
+      <pre class="code"><code>npm uninstall prisma @prisma/client
+npm install sequelize pg pg-hstore sequelize-cli</code></pre>
+      <p><code>pg</code> adalah driver PostgreSQL, <code>pg-hstore</code> dibutuhkan Sequelize untuk tipe hstore, dan <code>sequelize-cli</code> menjalankan migration dan seeder. CLI dipasang sebagai dependency biasa (bukan dev) agar Docker bisa menjalankan migration di production.</p></li>
+    <li><h4>Hapus file Prisma</h4>
+      <p>Folder <code>prisma/</code> (schema, migration SQL, seed), <code>src/config/prisma.js</code>, dan <code>src/utils/sanitizeUser.js</code> dihapus.</p></li>
+    <li><h4>Konfigurasi Sequelize CLI</h4>
+      <p><code>.sequelizerc</code> memberi tahu CLI lokasi config, models, migrations, dan seeders. <code>src/config/database.js</code> membaca <code>DATABASE_URL</code> dari <code>.env</code> lewat <code>use_env_variable</code>.</p></li>
+    <li><h4>Tulis 8 model + index</h4>
+      <p>Setiap tabel menjadi satu file di <code>src/models/</code>. Opsi <code>underscored: true</code> membuat atribut camelCase di kode dipetakan ke kolom snake_case di database. Relasi didefinisikan di fungsi <code>associate()</code>, lalu <code>models/index.js</code> memuat semua model dan menjalankan relasinya.</p></li>
+    <li><h4>Tulis 8 migration</h4>
+      <p>Urutan file mengikuti dependensi foreign key: users → refresh_tokens → categories → services → schedules → bookings → payments → booking_status_logs. Setiap migration punya <code>up</code> (buat tabel + index) dan <code>down</code> (hapus tabel + tipe enum).</p></li>
+    <li><h4>Pindahkan seeder</h4>
+      <p>Data demo sama dengan sebelumnya. Reset memakai <code>TRUNCATE … RESTART IDENTITY CASCADE</code>, sehingga seeder bisa dijalankan berulang kali.</p></li>
+    <li><h4>Sesuaikan utilitas</h4>
+      <p><code>pagination.js</code>: <code>skip/take</code> menjadi <code>offset/limit</code>, dan sort menjadi format <code>[['field', 'DESC']]</code>. <code>dateRange.js</code>: filter memakai operator <code>Op.gte/Op.lte/Op.lt</code>. File baru <code>compact.js</code> membuang nilai <code>undefined</code>, karena Sequelize menolak <code>undefined</code> di <code>where</code> (Prisma mengabaikannya).</p></li>
+    <li><h4>Tulis ulang 8 service</h4>
+      <p>Logika bisnis sama. Yang berubah hanya sintaks query: <code>findMany</code> → <code>findAll/findAndCountAll</code>, <code>contains</code> → <code>Op.iLike</code>, <code>$transaction</code> → <code>sequelize.transaction</code>, <code>$queryRaw</code> → <code>sequelize.query</code> dengan <code>replacements</code>.</p></li>
+    <li><h4>Error handler &amp; server</h4>
+      <p>Kode error Prisma (<code>P2002</code>, <code>P2025</code>, <code>P2003</code>) diganti class error Sequelize (<code>UniqueConstraintError</code>, <code>ForeignKeyConstraintError</code>, <code>ValidationError</code>). <code>server.js</code> memakai <code>sequelize.authenticate()</code> dan <code>sequelize.close()</code>.</p></li>
+    <li><h4>Docker, env, README, test</h4>
+      <p>Dockerfile tidak lagi butuh OpenSSL dan <code>prisma generate</code>. <code>.env</code> dan <code>.env.example</code> kehilangan akhiran <code>?schema=public</code> (khusus Prisma), dan <code>.env.example</code> mendapat <code>DB_SSL</code> untuk database hosting. Unit test pagination dan dateRange disesuaikan, ditambah test <code>compact</code>.</p></li>
+    <li><h4>Verifikasi</h4>
+      <p>Migration dijalankan naik, turun, lalu naik lagi. Seeder dijalankan, server dinyalakan, dan skrip end-to-end yang sama dengan versi Prisma (plus 6 skenario baru) dijalankan. Satu bug ditemukan dan diperbaiki (lihat bagian 11).</p></li>
+  </ol>
+</section>
+
+<!-- 3 -->
+<section id="file">
+  <h2>3. Perubahan file</h2>
+
+  <h3>Dihapus</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>File</th><th>Diganti oleh</th></tr></thead>
+    <tbody>
+      <tr><td><code>prisma/schema.prisma</code></td><td><code>src/models/*.js</code></td></tr>
+      <tr><td><code>prisma/migrations/20261011000000_init/migration.sql</code>, <code>migration_lock.toml</code></td><td><code>src/database/migrations/*.js</code></td></tr>
+      <tr><td><code>prisma/seed.js</code></td><td><code>src/database/seeders/20261011000001-demo-data.js</code></td></tr>
+      <tr><td><code>src/config/prisma.js</code></td><td><code>src/models/index.js</code></td></tr>
+      <tr><td><code>src/utils/sanitizeUser.js</code></td><td><code>User.prototype.toJSON</code> + <code>defaultScope</code> di <code>src/models/user.js</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Ditambahkan</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>File</th><th>Fungsi</th></tr></thead>
+    <tbody>
+      <tr><td><code>.sequelizerc</code></td><td>Lokasi config/models/migrations/seeders untuk sequelize-cli.</td></tr>
+      <tr><td><code>src/config/database.js</code></td><td>Config CLI per environment (development, test, production) yang membaca <code>DATABASE_URL</code>, dengan SSL opsional.</td></tr>
+      <tr><td><code>src/models/index.js</code></td><td>Instance <code>Sequelize</code> tunggal, memuat 8 model, menjalankan <code>associate()</code>.</td></tr>
+      <tr><td><code>src/models/user.js</code></td><td>User. <code>defaultScope</code> menyembunyikan <code>passwordHash</code>, scope <code>withPassword</code> dipakai saat login.</td></tr>
+      <tr><td><code>src/models/refreshToken.js</code></td><td>Refresh token (hash), tanpa <code>updated_at</code>.</td></tr>
+      <tr><td><code>src/models/category.js</code></td><td>Kategori layanan.</td></tr>
+      <tr><td><code>src/models/service.js</code></td><td>Layanan, <code>paranoid: true</code> untuk soft delete.</td></tr>
+      <tr><td><code>src/models/schedule.js</code></td><td>Slot jadwal, <code>date</code> bertipe <code>DATEONLY</code>.</td></tr>
+      <tr><td><code>src/models/booking.js</code></td><td>Booking: relasi ke user, service, schedule, payment, logs.</td></tr>
+      <tr><td><code>src/models/payment.js</code></td><td>Pembayaran 1:1 dengan booking.</td></tr>
+      <tr><td><code>src/models/bookingStatusLog.js</code></td><td>Riwayat status, kolom <code>changed_by</code>.</td></tr>
+      <tr><td><code>src/database/migrations/20261011000001…08-*.js</code></td><td>8 migration: create-users, refresh-tokens, categories, services, schedules, bookings, payments, booking-status-logs.</td></tr>
+      <tr><td><code>src/database/seeders/20261011000001-demo-data.js</code></td><td>1 admin, 2 pelanggan, 4 kategori, 6 layanan, slot H-7 s.d. H+14, 11 booking contoh.</td></tr>
+      <tr><td><code>src/utils/compact.js</code></td><td>Membuang key bernilai <code>undefined</code> dari objek <code>where</code>.</td></tr>
+      <tr><td><code>tests/unit/compact.test.js</code></td><td>Test untuk <code>compact</code>.</td></tr>
+      <tr><td><code>docs/migrasi-prisma-ke-sequelize.html</code></td><td>Dokumen ini.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Diedit</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>File</th><th>Perubahan</th></tr></thead>
+    <tbody>
+      <tr><td><code>package.json</code> / <code>package-lock.json</code></td><td>Dependency Prisma diganti Sequelize. Script <code>prisma:*</code> diganti <code>db:migrate</code>, <code>db:migrate:undo</code>, <code>db:seed</code>, <code>db:reset</code>. Blok <code>"prisma"</code> dihapus. Versi 1.1.0.</td></tr>
+      <tr><td><code>src/modules/auth/auth.service.js</code></td><td><code>User.scope('withPassword')</code> untuk login, <code>RefreshToken.create/destroy</code>.</td></tr>
+      <tr><td><code>src/modules/users/users.service.js</code></td><td>Jumlah booking lewat subquery <code>bookingCount</code>. Riwayat booking terbaru lewat include <code>separate: true, limit: 10</code>.</td></tr>
+      <tr><td><code>src/modules/categories/categories.service.js</code></td><td>Jumlah layanan lewat subquery <code>serviceCount</code>.</td></tr>
+      <tr><td><code>src/modules/services/services.service.js</code></td><td>Search <code>Op.iLike</code> termasuk <code>$category.name$</code>. Soft delete memakai <code>service.destroy()</code>.</td></tr>
+      <tr><td><code>src/modules/schedules/schedules.service.js</code></td><td>Query overlap dengan <code>Op.lt/Op.gt</code>, <code>bulkCreate</code>, update dengan <code>LOCK.UPDATE</code>.</td></tr>
+      <tr><td><code>src/modules/bookings/bookings.service.js</code></td><td>Transaksi <code>sequelize.transaction</code> + <code>lock</code>, nested create untuk payment dan log, <code>findAndCountAll</code> dengan <code>distinct</code>.</td></tr>
+      <tr><td><code>src/modules/payments/payments.service.js</code></td><td><code>booking.payment.update(...)</code>.</td></tr>
+      <tr><td><code>src/modules/reports/reports.service.js</code></td><td>Top services dan busiest memakai <code>sequelize.query</code> + <code>replacements</code>. Summary memakai <code>count</code>, <code>sum</code>, dan <code>group</code>.</td></tr>
+      <tr><td><code>src/middlewares/errorHandler.js</code></td><td>Menangani error Sequelize, bukan Prisma.</td></tr>
+      <tr><td><code>src/server.js</code></td><td><code>sequelize.authenticate()</code> / <code>sequelize.close()</code>.</td></tr>
+      <tr><td><code>src/config/env.js</code></td><td>Variabel opsional <code>DB_SSL</code>.</td></tr>
+      <tr><td><code>src/utils/pagination.js</code></td><td><code>offset/limit</code>, sort berupa array.</td></tr>
+      <tr><td><code>src/utils/dateRange.js</code></td><td>Filter dengan operator <code>Op</code>, tanggal tetap berupa string.</td></tr>
+      <tr><td><code>src/utils/time.js</code></td><td>Komentar yang menyebut Prisma diperbarui.</td></tr>
+      <tr><td><code>src/docs/openapi.js</code></td><td>Contoh response <code>_count</code> diganti <code>bookingCount</code> / <code>serviceCount</code>.</td></tr>
+      <tr><td><code>tests/unit/pagination.test.js</code>, <code>dateRange.test.js</code></td><td>Ekspektasi disesuaikan dengan format Sequelize.</td></tr>
+      <tr><td><code>Dockerfile</code></td><td>Tanpa OpenSSL/<code>prisma generate</code>. CMD menjalankan <code>sequelize-cli db:migrate</code>.</td></tr>
+      <tr><td><code>docker-compose.yml</code></td><td><code>DATABASE_URL</code> tanpa <code>?schema=public</code>.</td></tr>
+      <tr><td><code>.env</code>, <code>.env.example</code></td><td>Akhiran <code>?schema=public</code> dihapus. Password Anda di <code>.env</code> tidak diubah. <code>.env.example</code> mendapat <code>DB_SSL=false</code>.</td></tr>
+      <tr><td><code>README.md</code></td><td>Tech stack, cara run, script, struktur folder.</td></tr>
+      <tr><td><code>docs/implementasi-backend.html</code>, <code>docs/perancangan-sistem-booking.html</code></td><td>Ditambah catatan bahwa ORM sekarang Sequelize, dengan tautan ke dokumen ini.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Tidak berubah</h3>
+  <p>Semua <code>*.routes.js</code>, <code>*.controller.js</code>, <code>*.schema.js</code> (Zod), <code>bookings.rules.js</code>, middleware <code>authenticate</code>/<code>authorize</code>/<code>validate</code>/<code>rateLimiter</code>/<code>notFound</code>, <code>app.js</code>, <code>routes/index.js</code>, serta utilitas <code>ApiError</code>, <code>asyncHandler</code>, <code>response</code>, <code>jwt</code>, <code>bookingCode</code>, <code>slugify</code>, <code>csv</code>, <code>commonSchemas</code>, dan integration test. Ini bukti bahwa pola berlapis memisahkan database dari logika aplikasi.</p>
+</section>
+
+<!-- 4 -->
+<section id="struktur">
+  <h2>4. Struktur folder setelah migrasi</h2>
+<pre class="code"><code>backend/
+├── .sequelizerc                          <span class="cm"># BARU</span>
+├── .env · .env.example · Dockerfile · docker-compose.yml · package.json · README.md
+├── src/
+│   ├── server.js · app.js
+│   ├── config/
+│   │   ├── env.js
+│   │   └── database.js                   <span class="cm"># BARU (config sequelize-cli)</span>
+│   ├── models/                           <span class="cm"># BARU (Model pada MVC)</span>
+│   │   ├── index.js
+│   │   ├── user.js · refreshToken.js · category.js · service.js
+│   │   └── schedule.js · booking.js · payment.js · bookingStatusLog.js
+│   ├── database/                         <span class="cm"># BARU</span>
+│   │   ├── migrations/
+│   │   │   ├── 20261011000001-create-users.js
+│   │   │   ├── 20261011000002-create-refresh-tokens.js
+│   │   │   ├── 20261011000003-create-categories.js
+│   │   │   ├── 20261011000004-create-services.js
+│   │   │   ├── 20261011000005-create-schedules.js
+│   │   │   ├── 20261011000006-create-bookings.js
+│   │   │   ├── 20261011000007-create-payments.js
+│   │   │   └── 20261011000008-create-booking-status-logs.js
+│   │   └── seeders/
+│   │       └── 20261011000001-demo-data.js
+│   ├── docs/openapi.js
+│   ├── middlewares/  authenticate · authorize · validate · rateLimiter · notFound · errorHandler
+│   ├── modules/      auth · users · categories · services · schedules · bookings · payments · reports
+│   ├── routes/index.js
+│   └── utils/        ApiError · asyncHandler · response · pagination · time · dateRange
+│                     jwt · bookingCode · slugify · csv · commonSchemas · compact (BARU)
+└── tests/
+    ├── setup.js
+    ├── unit/         time · pagination · bookingRules · dateRange · compact (BARU)
+    └── integration/  app.test.js</code></pre>
+</section>
+
+<!-- 5 -->
+<section id="kode">
+  <h2>5. Perbandingan kode sebelum dan sesudah</h2>
+
+  <h3>Model</h3>
+  <div class="cols2">
+    <div><div class="tag before">Prisma: schema.prisma</div>
+<pre class="code"><code>model Service {
+  id              Int      @id @default(autoincrement())
+  categoryId      Int      @map("category_id")
+  name            String   @db.VarChar(150)
+  price           Decimal  @db.Decimal(12, 2)
+  durationMinutes Int      @map("duration_minutes")
+  status          ServiceStatus @default(ACTIVE)
+  deletedAt       DateTime? @map("deleted_at")
+  category Category @relation(fields: [categoryId], references: [id])
+  @@map("services")
+}</code></pre></div>
+    <div><div class="tag after">Sequelize: models/service.js</div>
+<pre class="code"><code>const Service = sequelize.define('Service', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  categoryId: { type: DataTypes.INTEGER, allowNull: false },
+  name: { type: DataTypes.STRING(150), allowNull: false },
+  price: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
+  durationMinutes: { type: DataTypes.INTEGER, allowNull: false },
+  status: { type: DataTypes.ENUM('ACTIVE', 'INACTIVE'), defaultValue: 'ACTIVE' },
+}, { tableName: 'services', underscored: true, paranoid: true });
+
+Service.associate = (models) =&gt; {
+  Service.belongsTo(models.Category, { foreignKey: 'categoryId', as: 'category' });
+};</code></pre></div>
+  </div>
+
+  <h3>Migration</h3>
+  <div class="cols2">
+    <div><div class="tag before">Prisma: otomatis</div>
+<pre class="code"><code>npx prisma migrate dev --name init
+<span class="cm"># Prisma membaca schema dan menulis
+# migration.sql sendiri</span></code></pre></div>
+    <div><div class="tag after">Sequelize: ditulis manual</div>
+<pre class="code"><code>async up(queryInterface, Sequelize) {
+  await queryInterface.createTable('services', {
+    id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+    category_id: { type: Sequelize.INTEGER, allowNull: false,
+      references: { model: 'categories', key: 'id' }, onDelete: 'RESTRICT' },
+    ...
+    deleted_at: { type: Sequelize.DATE },
+  });
+  await queryInterface.addIndex('services', ['category_id']);
+}</code></pre></div>
+  </div>
+
+  <h3>Query dengan filter, search, dan pagination</h3>
+  <div class="cols2">
+    <div><div class="tag before">Prisma</div>
+<pre class="code"><code>prisma.service.findMany({
+  where: {
+    deletedAt: null,
+    status: 'ACTIVE',
+    OR: [{ name: { contains: q, mode: 'insensitive' } }],
+  },
+  include: { category: true },
+  skip, take,
+  orderBy: { price: 'asc' },
+});</code></pre></div>
+    <div><div class="tag after">Sequelize</div>
+<pre class="code"><code>Service.findAndCountAll({
+  where: {
+    status: 'ACTIVE',
+    [Op.or]: [{ name: { [Op.iLike]: `%${q}%` } }],
+  },                          <span class="cm">// deleted_at otomatis (paranoid)</span>
+  include: [{ model: Category, as: 'category' }],
+  offset, limit,
+  order: [['price', 'ASC']],
+});</code></pre></div>
+  </div>
+
+  <h3>Transaksi booking dengan row lock</h3>
+  <div class="cols2">
+    <div><div class="tag before">Prisma</div>
+<pre class="code"><code>prisma.$transaction(async (tx) =&gt; {
+  await tx.$queryRaw`SELECT id FROM schedules
+    WHERE id = ${scheduleId} FOR UPDATE`;
+  const slot = await tx.schedule.findUnique({
+    where: { id: scheduleId }, include: { service: true } });
+  ...
+  await tx.booking.create({ data: {
+    ...,
+    payment: { create: { amount } },
+    logs: { create: { toStatus: 'PENDING' } },
+  }});
+});</code></pre></div>
+    <div><div class="tag after">Sequelize</div>
+<pre class="code"><code>sequelize.transaction(async (transaction) =&gt; {
+  const slot = await Schedule.findByPk(scheduleId,
+    { transaction, lock: transaction.LOCK.UPDATE });
+  const service = await Service.findByPk(slot.serviceId, { transaction });
+  ...
+  await Booking.create({
+    ...,
+    payment: { amount },
+    logs: [{ toStatus: 'PENDING' }],
+  }, { include: [Payment, BookingStatusLog], transaction });
+});</code></pre></div>
+  </div>
+
+  <h3>Menyembunyikan password</h3>
+  <div class="cols2">
+    <div><div class="tag before">Prisma</div>
+<pre class="code"><code>// utils/sanitizeUser.js
+const { passwordHash, ...safe } = user;
+return safe;
+
+// harus dipanggil manual di setiap service
+return sanitizeUser(user);</code></pre></div>
+    <div><div class="tag after">Sequelize: di model</div>
+<pre class="code"><code>defaultScope: { attributes: { exclude: ['passwordHash'] } },
+scopes: { withPassword: {} },
+
+User.prototype.toJSON = function () {
+  const { passwordHash, ...values } = this.get();
+  return values;
+};
+// login: User.scope('withPassword').findOne(...)</code></pre></div>
+  </div>
+
+  <h3>Error handler</h3>
+  <div class="cols2">
+    <div><div class="tag before">Prisma</div>
+<pre class="code"><code>if (err.code === 'P2002') → 409
+if (err.code === 'P2025') → 404
+if (err.code === 'P2003') → 409</code></pre></div>
+    <div><div class="tag after">Sequelize</div>
+<pre class="code"><code>if (err instanceof UniqueConstraintError)     → 409
+if (err instanceof ForeignKeyConstraintError) → 409
+if (err instanceof ValidationError)           → 422</code></pre></div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="mvc">
+  <h2>6. MVC setelah migrasi</h2>
+  <p>Peran setiap lapisan tetap sama. Hanya isi lapisan <strong>Model</strong> yang berganti dari Prisma Client menjadi class model Sequelize.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Lapisan</th><th>Sebelum</th><th>Sesudah</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Model</strong></td><td><code>prisma/schema.prisma</code> + Prisma Client hasil generate</td><td><code>src/models/*.js</code>: atribut, tipe, relasi, scope, <code>toJSON</code></td></tr>
+      <tr><td><strong>View</strong></td><td colspan="2">JSON lewat <code>utils/response.js</code> dan <code>errorHandler.js</code> (tidak berubah). <code>toJSON()</code> model User kini ikut menentukan field yang tampil.</td></tr>
+      <tr><td><strong>Controller</strong></td><td colspan="2"><code>*.controller.js</code> (tidak berubah)</td></tr>
+      <tr><td><strong>Service</strong></td><td>Query Prisma</td><td>Query Sequelize, aturan bisnis sama</td></tr>
+      <tr><td><strong>Routes + Schema</strong></td><td colspan="2">Tidak berubah</td></tr>
+    </tbody>
+  </table></div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  C(["Client"]) -->|HTTP JSON| R["Route"]
+  R --> MW["Middleware<br/>authenticate · authorize · validate"]
+  MW --> CT["Controller"]
+  CT --> SV["Service<br/>business rules"]
+  SV --> MD["Model<br/>src/models/*.js<br/>(Sequelize)"]
+  MD --> DB[("PostgreSQL")]
+  MIG["src/database/migrations<br/>sequelize-cli"] -. membentuk tabel .-> DB
+  CT --> V["View<br/>response.js + toJSON()"]
+  V --> C
+</pre>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="erd">
+  <h2>7. ERD dan database</h2>
+  <p><strong>Struktur tabel, kolom, relasi, index, dan constraint sama dengan versi Prisma.</strong> ERD di dokumen implementasi tetap berlaku. Perbedaannya hanya di detail teknis berikut:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Hal</th><th>Prisma</th><th>Sequelize</th></tr></thead>
+    <tbody>
+      <tr><td>Tabel riwayat migration</td><td><code>_prisma_migrations</code></td><td><code>sequelize_meta</code></td></tr>
+      <tr><td>Tipe kolom waktu</td><td><code>timestamp(3)</code> tanpa zona</td><td><code>timestamptz</code></td></tr>
+      <tr><td>Nama tipe enum</td><td><code>"Role"</code>, <code>"BookingStatus"</code>, …</td><td><code>enum_users_role</code>, <code>enum_bookings_status</code>, … (satu per kolom)</td></tr>
+      <tr><td>UUID</td><td>Dibuat oleh Prisma</td><td>Dibuat oleh model (<code>DataTypes.UUIDV4</code>)</td></tr>
+      <tr><td>Soft delete</td><td>Kolom <code>deleted_at</code>, filter manual</td><td>Kolom sama, filter otomatis (<code>paranoid</code>)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="diagram">
+<pre class="mermaid">
+erDiagram
+  USERS ||--o{ BOOKINGS : "hasMany bookings"
+  USERS ||--o{ REFRESH_TOKENS : "hasMany refreshTokens"
+  USERS |o--o{ BOOKING_STATUS_LOGS : "hasMany statusLogs (changed_by)"
+  CATEGORIES ||--o{ SERVICES : "hasMany services"
+  SERVICES ||--o{ SCHEDULES : "hasMany schedules"
+  SERVICES ||--o{ BOOKINGS : "hasMany bookings"
+  SCHEDULES ||--o{ BOOKINGS : "hasMany bookings"
+  BOOKINGS ||--|| PAYMENTS : "hasOne payment"
+  BOOKINGS ||--o{ BOOKING_STATUS_LOGS : "hasMany logs"
+  USERS {
+    uuid id PK
+    varchar email UK
+    enum role
+  }
+  CATEGORIES {
+    int id PK
+    varchar slug UK
+  }
+  SERVICES {
+    int id PK
+    int category_id FK
+    timestamptz deleted_at
+  }
+  SCHEDULES {
+    int id PK
+    int service_id FK
+    date date
+    varchar start_time
+  }
+  BOOKINGS {
+    uuid id PK
+    uuid user_id FK
+    int schedule_id FK
+    enum status
+  }
+  PAYMENTS {
+    uuid id PK
+    uuid booking_id FK
+    enum status
+  }
+  BOOKING_STATUS_LOGS {
+    int id PK
+    uuid booking_id FK
+    uuid changed_by FK
+  }
+  REFRESH_TOKENS {
+    uuid id PK
+    uuid user_id FK
+  }
+</pre>
+  </div>
+  <h3>Pemetaan relasi ke kode Sequelize</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Relasi</th><th>Di model induk</th><th>Di model anak</th><th>Alias</th></tr></thead>
+    <tbody>
+      <tr><td>Category 1:N Service</td><td><code>Category.hasMany(Service)</code></td><td><code>Service.belongsTo(Category)</code></td><td><code>services</code> / <code>category</code></td></tr>
+      <tr><td>Service 1:N Schedule</td><td><code>Service.hasMany(Schedule)</code></td><td><code>Schedule.belongsTo(Service)</code></td><td><code>schedules</code> / <code>service</code></td></tr>
+      <tr><td>Schedule 1:N Booking</td><td><code>Schedule.hasMany(Booking)</code></td><td><code>Booking.belongsTo(Schedule)</code></td><td><code>bookings</code> / <code>schedule</code></td></tr>
+      <tr><td>User 1:N Booking</td><td><code>User.hasMany(Booking)</code></td><td><code>Booking.belongsTo(User)</code></td><td><code>bookings</code> / <code>user</code></td></tr>
+      <tr><td>Booking 1:1 Payment</td><td><code>Booking.hasOne(Payment)</code></td><td><code>Payment.belongsTo(Booking)</code></td><td><code>payment</code> / <code>booking</code></td></tr>
+      <tr><td>Booking 1:N StatusLog</td><td><code>Booking.hasMany(BookingStatusLog)</code></td><td><code>BookingStatusLog.belongsTo(Booking)</code></td><td><code>logs</code> / <code>booking</code></td></tr>
+      <tr><td>User 1:N StatusLog</td><td><code>User.hasMany(BookingStatusLog)</code></td><td><code>BookingStatusLog.belongsTo(User)</code></td><td><code>statusLogs</code> / <code>changedBy</code></td></tr>
+      <tr><td>User 1:N RefreshToken</td><td><code>User.hasMany(RefreshToken)</code></td><td><code>RefreshToken.belongsTo(User)</code></td><td><code>refreshTokens</code> / <code>user</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 8 -->
+<section id="pipeline">
+  <h2>8. Pipeline</h2>
+  <h3>Request pipeline</h3>
+  <p>Tidak berubah: helmet → cors → JSON → morgan → rate limit → route → authenticate → authorize → validate → controller → service → model → database, dengan semua error berakhir di <code>errorHandler</code>.</p>
+
+  <h3>Pipeline transaksi booking (versi Sequelize)</h3>
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant C as Controller
+  participant S as bookings.service
+  participant M as Sequelize Models
+  participant DB as PostgreSQL
+  C->>S: createBooking(userId, {scheduleId})
+  S->>M: sequelize.transaction(async t => ...)
+  M->>DB: BEGIN
+  S->>M: Schedule.findByPk(id, {transaction: t, lock: t.LOCK.UPDATE})
+  M->>DB: SELECT ... FROM schedules WHERE id=$1 FOR UPDATE
+  Note over DB: request lain untuk slot yang sama MENUNGGU
+  S->>M: Service.findByPk + Booking.findOne (cek bentrok)
+  alt melanggar aturan
+    S-->>M: throw ApiError
+    M->>DB: ROLLBACK (otomatis)
+  else valid
+    S->>M: Booking.create({..., payment, logs}, {include, transaction: t})
+    M->>DB: INSERT bookings, payments, booking_status_logs
+    S->>M: slot.update({bookedCount, status}, {transaction: t})
+    M->>DB: UPDATE schedules
+    M->>DB: COMMIT (otomatis)
+  end
+</pre>
+  </div>
+  <p>Pada <em>managed transaction</em> Sequelize, error yang dilempar di dalam callback otomatis memicu ROLLBACK, dan callback yang selesai normal otomatis COMMIT.</p>
+
+  <h3>Pipeline development sampai deploy</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  A["Ubah / tambah model<br/>src/models"] --> B["Tulis migration baru<br/>npx sequelize-cli migration:generate"]
+  B --> C["npm run db:migrate"]
+  C --> D["Ubah service"]
+  D --> E["npm test"]
+  E --> F["Uji di Swagger / Postman"]
+  F --> G["git push"]
+  G --> H["Build Dockerfile<br/>Railway / Render"]
+  H --> I["npx sequelize-cli db:migrate"]
+  I --> J["node src/server.js"]
+</pre>
+  </div>
+  <div class="note"><strong>Perbedaan alur penting</strong>Di Prisma, mengubah schema lalu menjalankan <code>migrate dev</code> sudah cukup. Di Sequelize, mengubah model <strong>tidak</strong> mengubah database. Anda wajib menulis file migration baru (misalnya <code>addColumn</code>), lalu menjalankan <code>db:migrate</code>. Model dan migration harus selalu sejalan.</div>
+</section>
+
+<!-- 9 -->
+<section id="dfd">
+  <h2>9. Data flow diagram</h2>
+  <p>DFD level 0, 1, dan 2 di <a href="implementasi-backend.html#dfd">dokumen implementasi</a> <strong>tetap berlaku tanpa perubahan</strong>. DFD menggambarkan aliran data antara aktor, proses bisnis, dan data store, sedangkan ORM hanya mengubah cara proses membaca dan menulis data store. Yang berubah hanya "jalur" di dalam setiap proses:</p>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  P["Pelanggan / Admin"] -- "request JSON" --> PR(("Proses<br/>(service)"))
+  PR -- "Model.findAll / create / update<br/>{ transaction, lock }" --> ORM["Sequelize<br/>models/index.js"]
+  ORM -- "SQL berparameter" --> DS[("Data store<br/>tabel PostgreSQL")]
+  DS -- "rows" --> ORM
+  ORM -- "instance model → toJSON()" --> PR
+  PR -- "response JSON" --> P
+</pre>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="api">
+  <h2>10. Dampak ke response API</h2>
+  <p>Endpoint, method, kode status, dan pesan error tidak berubah. Ada beberapa perbedaan bentuk data yang perlu diketahui frontend:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Field</th><th>Sebelum (Prisma)</th><th>Sesudah (Sequelize)</th></tr></thead>
+    <tbody>
+      <tr><td>Jumlah booking pelanggan</td><td><code>"_count": { "bookings": 3 }</code></td><td><code>"bookingCount": 3</code></td></tr>
+      <tr><td>Jumlah layanan per kategori</td><td><code>"_count": { "services": 2 }</code></td><td><code>"serviceCount": 2</code></td></tr>
+      <tr><td>Tanggal slot</td><td><code>"date": "2026-10-20T00:00:00.000Z"</code></td><td><code>"date": "2026-10-20"</code></td></tr>
+      <tr><td>Angka desimal</td><td><code>"price": "75000"</code></td><td><code>"price": "75000.00"</code></td></tr>
+      <tr><td>Layanan yang dihapus</td><td>Muncul dengan <code>deletedAt</code></td><td>Tidak muncul di katalog. Tetap muncul di riwayat booking (<code>paranoid: false</code> pada include).</td></tr>
+    </tbody>
+  </table></div>
+  <p>Format tanggal <code>YYYY-MM-DD</code> justru lebih mudah ditampilkan di React tanpa konversi zona waktu.</p>
+</section>
+
+<!-- 11 -->
+<section id="uji">
+  <h2>11. Hasil pengujian</h2>
+  <h3>Jest: 25/25 lulus</h3>
+<pre class="code"><code>PASS tests/unit/compact.test.js
+PASS tests/integration/app.test.js
+PASS tests/unit/time.test.js
+PASS tests/unit/dateRange.test.js
+PASS tests/unit/bookingRules.test.js
+PASS tests/unit/pagination.test.js
+Tests: 25 passed, 25 total</code></pre>
+
+  <h3>Migration</h3>
+<pre class="code"><code>== 20261011000001-create-users: migrated
+== 20261011000002-create-refresh-tokens: migrated
+== 20261011000003-create-categories: migrated
+== 20261011000004-create-services: migrated
+== 20261011000005-create-schedules: migrated
+== 20261011000006-create-bookings: migrated
+== 20261011000007-create-payments: migrated
+== 20261011000008-create-booking-status-logs: migrated
+<span class="cm">undo:all → 8 reverted, migrate lagi → 8 migrated (up/down bersih)</span>
+== 20261011000001-demo-data: migrated</code></pre>
+
+  <h3>End-to-end: 47/47 lulus</h3>
+  <p>Skrip yang sama dengan versi Prisma (41 skenario) ditambah 6 skenario baru, dijalankan ke PostgreSQL 17 sementara (port 55432). Database Anda di port 5432 tidak disentuh. Hasil laporan identik dengan versi Prisma (summary: PENDING 4, CONFIRMED 2, COMPLETED 6, CANCELLED 2; revenue Rp1.135.000; top service Haircut &amp; Styling 3 booking), yang membuktikan logikanya tidak berubah.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Skenario baru</th><th>Hasil</th></tr></thead>
+    <tbody>
+      <tr><td>Booking lintas layanan yang overlap (10:00–11:00 vs 09:00–10:30)</td><td><span class="pill pass">409</span></td></tr>
+      <tr><td><code>bookingCount</code> muncul di daftar pelanggan</td><td><span class="pill pass">number</span></td></tr>
+      <tr><td><code>serviceCount</code> muncul di daftar kategori</td><td><span class="pill pass">number</span></td></tr>
+      <tr><td>Response login tidak berisi <code>passwordHash</code></td><td><span class="pill pass">OK</span></td></tr>
+      <tr><td>Hapus layanan yang masih punya booking aktif</td><td><span class="pill pass">409</span></td></tr>
+      <tr><td>Soft delete: layanan hilang dari API (404), <code>deleted_at</code> terisi, status INACTIVE</td><td><span class="pill pass">OK</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Bug yang ditemukan dan diperbaiki selama pengujian</h3>
+  <div class="note warn"><strong><code>GET /bookings/me?period=this_month</code> → 500</strong>Filter tanggal dikirim langsung sebagai <code>where</code> include Schedule (<code>{ [Op.gte]: … }</code>), padahal Sequelize membutuhkan nama kolom: <code>{ date: { [Op.gte]: … } }</code>. Sudah diperbaiki di <code>bookings.service.js</code>, dan skenario ini sekarang lulus. Contoh ini menunjukkan pentingnya menjalankan ulang pengujian end-to-end setelah migrasi.</div>
+</section>
+
+<!-- 12 -->
+<section id="jalan">
+  <h2>12. Cara menjalankan</h2>
+  <p><code>.env</code> Anda sudah berisi password database dan tetap dipakai. Akhiran <code>?schema=public</code> sudah dihapus karena itu format khusus Prisma.</p>
+<pre class="code"><code>cd backend
+npm install                 <span class="cm"># bila node_modules belum ada</span>
+npm run db:migrate          <span class="cm"># membuat 8 tabel</span>
+npm run db:seed             <span class="cm"># data demo</span>
+npm run dev                 <span class="cm"># http://localhost:5000, docs di /api/docs</span>
+npm test</code></pre>
+  <div class="tbl"><table>
+    <thead><tr><th>Script</th><th>Perintah asli</th><th>Fungsi</th></tr></thead>
+    <tbody>
+      <tr><td><code>npm run db:migrate</code></td><td><code>sequelize-cli db:migrate</code></td><td>Jalankan migration yang belum dijalankan</td></tr>
+      <tr><td><code>npm run db:migrate:undo</code></td><td><code>sequelize-cli db:migrate:undo:all</code></td><td>Batalkan semua migration</td></tr>
+      <tr><td><code>npm run db:seed</code></td><td><code>sequelize-cli db:seed:all</code></td><td>Reset dan isi data demo</td></tr>
+      <tr><td><code>npm run db:reset</code></td><td>undo:all + migrate + seed</td><td>Mulai ulang database dari nol</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><strong>Kalau database <code>booking_db</code> sudah pernah dibuat dengan Prisma</strong>Tabel lama dan <code>_prisma_migrations</code> akan bentrok dengan migration Sequelize. Hapus dan buat ulang database-nya dulu: <code>dropdb -U postgres booking_db</code> lalu <code>createdb -U postgres booking_db</code>. Saat terakhir dicek, database di komputer Anda belum dibuat, jadi kemungkinan langkah ini tidak diperlukan.</div>
+</section>
+
+<!-- 13 -->
+<section id="ingat">
+  <h2>13. Hal yang perlu diingat saat mengembangkan dengan Sequelize</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Aturan</th><th>Kenapa</th></tr></thead>
+    <tbody>
+      <tr><td>Setiap query di dalam transaksi wajib diberi <code>{ transaction }</code></td><td>Query tanpa opsi itu berjalan di luar transaksi, sehingga row lock dan rollback tidak melindunginya.</td></tr>
+      <tr><td>Gunakan <code>compact()</code> untuk filter opsional</td><td>Sequelize melempar error bila <code>where</code> berisi <code>undefined</code>.</td></tr>
+      <tr><td><code>findAndCountAll</code> + <code>include</code> → tambahkan <code>distinct: true</code></td><td>Tanpa itu, total bisa terhitung ganda karena join.</td></tr>
+      <tr><td>Include Service di riwayat → <code>paranoid: false</code></td><td>Agar booking lama tetap menampilkan layanan yang sudah di-soft delete.</td></tr>
+      <tr><td>Login memakai <code>User.scope('withPassword')</code></td><td><code>defaultScope</code> membuang <code>passwordHash</code>, sehingga tanpa scope ini bcrypt tidak bisa membandingkan password.</td></tr>
+      <tr><td>Ubah model = tulis migration baru</td><td>Model hanya memberi tahu kode bentuk tabel, sedangkan migration yang benar-benar mengubah database.</td></tr>
+      <tr><td>Filter include ditulis dengan nama kolom</td><td><code>where: { date: { [Op.gte]: x } }</code>, bukan <code>where: { [Op.gte]: x }</code> (bug yang ditemukan di bagian 11).</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note warn"><strong>Pahami sebelum Checkpoint 1</strong>Mentor kemungkinan akan bertanya soal <code>models/index.js</code> (cara model dimuat dan relasi dipasang), satu file migration, serta <code>createBooking</code> di <code>bookings.service.js</code> (transaksi dan <code>LOCK.UPDATE</code>). Coba tambahkan satu kolom baru sendiri, misalnya <code>services.max_per_day</code>, lewat migration <code>addColumn</code> sebagai latihan.</div>
+</section>
+</main>
+</div>

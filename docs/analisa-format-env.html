@@ -1,0 +1,208 @@
+<title>Analisa Format .env</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: single-column technical note, same visual family as the guideline audit */
+:root {
+  --bg: #f6f8fa; --surface: #ffffff; --ink: #17212b; --muted: #56636f; --line: #d9e0e6;
+  --accent: #0f6e74; --accent-soft: #e3f1f1; --code-bg: #eef2f5;
+  --ok: #1f7a46; --ok-soft: #e4f3ea; --warn: #9a5b00; --warn-soft: #fbf0dc; --bad: #b1322a; --bad-soft: #fbe6e4;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11171c; --surface: #182129; --ink: #e4eaef; --muted: #9aa8b4; --line: #2b3742;
+    --accent: #5cc2c6; --accent-soft: #163338; --code-bg: #1f2a33;
+    --ok: #6fd39a; --ok-soft: #173326; --warn: #f0b85a; --warn-soft: #3a2c12; --bad: #f08a80; --bad-soft: #3d1c1a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11171c; --surface: #182129; --ink: #e4eaef; --muted: #9aa8b4; --line: #2b3742;
+  --accent: #5cc2c6; --accent-soft: #163338; --code-bg: #1f2a33;
+  --ok: #6fd39a; --ok-soft: #173326; --warn: #f0b85a; --warn-soft: #3a2c12; --bad: #f08a80; --bad-soft: #3d1c1a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.65;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+main { max-width: 900px; margin: 0 auto; min-width: 0; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.2; }
+h1 { font-size: clamp(28px, 4.2vw, 40px); margin: 0 0 12px; }
+h2 { font-size: 25px; margin: 0 0 14px; }
+h3 { font-size: 18px; margin: 24px 0 10px; }
+section { margin-bottom: 48px; }
+p { margin: 0 0 14px; max-width: 72ch; }
+.lede { font-size: 18px; color: var(--muted); }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre.code { font-family: var(--font-mono); font-size: 13.5px; line-height: 1.6; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 0 0 16px; }
+pre.code code { background: none; padding: 0; font-size: inherit; }
+pre.code .c { color: var(--muted); }
+.scroll { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--code-bg); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
+.verdict div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.verdict b { font-family: var(--font-display); font-size: 16px; }
+.verdict span.t { font-size: 14.5px; color: var(--muted); }
+.callout { border: 1px solid var(--bad); background: var(--bad-soft); border-radius: 10px; padding: 14px 18px; margin: 0 0 18px; }
+.callout strong { display: block; margin-bottom: 4px; }
+.callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+ol, ul { padding-left: 22px; max-width: 74ch; }
+li { margin-bottom: 6px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">Final Project FWD · konfigurasi</p>
+    <h1>Bisakah <code>.env</code> project memakai model seperti <code>docs/.env</code>?</h1>
+    <p class="lede"><code>docs/.env</code> adalah file <code>.env</code> Laravel dari project kantor "KM Online". Project booking ini memakai Node.js (Express + Sequelize) dan React (Vite), yang membaca nama variabel dan lokasi file yang berbeda.</p>
+  </header>
+
+  <section>
+    <h2>1. Jawaban singkat</h2>
+    <div class="verdict">
+      <div><span class="pill ok">Bisa</span><b>Format penulisan</b><span class="t">Sintaks <code>KEY=VALUE</code>, komentar <code>#</code>, dan tanda kutip sama persis.</span></div>
+      <div><span class="pill bad">Tidak</span><b>Lokasi file</b><span class="t">Backend hanya membaca <code>backend/.env</code>, frontend hanya membaca <code>frontend/.env</code>. File di <code>docs/</code> tidak pernah dibaca.</span></div>
+      <div><span class="pill bad">Tidak, tanpa ubah kode</span><b>Nama variabel</b><span class="t">Backend butuh <code>DATABASE_URL</code> dan <code>JWT_ACCESS_SECRET</code>. Gaya Laravel <code>DB_HOST</code>, <code>DB_DATABASE</code>, dll. diabaikan, server langsung berhenti.</span></div>
+      <div><span class="pill warn">Bisa, dengan ubah kecil</span><b>Gaya DB_HOST terpisah</b><span class="t">Dua file config bisa diubah agar menerima <code>DB_HOST</code>/<code>DB_PORT</code>/... sebagai alternatif <code>DATABASE_URL</code>. Lihat bagian 4.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Kenapa lokasi <code>docs/.env</code> tidak terbaca</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Bagian</th><th>Cara membaca .env</th><th>File yang dibaca</th></tr></thead>
+      <tbody>
+        <tr><td>Backend (server)</td><td><code>require('dotenv').config()</code> di <code>src/config/env.js</code></td><td><code>.env</code> di folder tempat perintah dijalankan, yaitu <code>backend/.env</code> (karena <code>npm run dev</code> dijalankan dari <code>backend/</code>)</td></tr>
+        <tr><td>Backend (migration)</td><td><code>require('dotenv').config()</code> di <code>src/config/database.js</code></td><td><code>backend/.env</code></td></tr>
+        <tr><td>Frontend</td><td>Vite memuat otomatis</td><td><code>frontend/.env</code>, <code>.env.local</code>, <code>.env.development</code>, dst. di folder <code>frontend/</code>, dan hanya variabel berawalan <code>VITE_</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>Artinya file di <code>docs/</code> tidak berpengaruh apa pun ke aplikasi. Menyimpannya di sana hanya menambah risiko (bagian 5).</p>
+  </section>
+
+  <section>
+    <h2>3. Pemetaan variabel Laravel → project ini</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Di <code>docs/.env</code> (Laravel)</th><th>Padanan di project booking</th><th>Keterangan</th></tr></thead>
+      <tbody>
+        <tr><td><code>APP_ENV=local</code></td><td><code>NODE_ENV=development</code></td><td>Nilai yang diterima: development, test, production</td></tr>
+        <tr><td><code>APP_URL</code> (port 8001)</td><td><code>PORT=5000</code></td><td>Backend hanya butuh port</td></tr>
+        <tr><td><code>DB_CONNECTION=pgsql</code></td><td>tidak perlu</td><td>Dialect <code>postgres</code> sudah ditulis di kode</td></tr>
+        <tr><td><code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_DATABASE</code>, <code>DB_USERNAME</code>, <code>DB_PASSWORD</code></td><td><code>DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE</code></td><td>Lima variabel digabung jadi satu URL</td></tr>
+        <tr><td>tidak ada</td><td><code>DB_SSL=false</code></td><td><code>true</code> hanya untuk database online (Neon, Supabase)</td></tr>
+        <tr><td><code>JWT_SECRET</code> (satu kunci)</td><td><code>JWT_ACCESS_SECRET</code> + <code>JWT_REFRESH_SECRET</code></td><td>Project ini memakai dua token; masing-masing minimal 16 karakter</td></tr>
+        <tr><td>tidak ada</td><td><code>JWT_ACCESS_EXPIRES=15m</code>, <code>JWT_REFRESH_EXPIRES=7d</code></td><td>Umur token</td></tr>
+        <tr><td><code>BCRYPT_ROUNDS=12</code></td><td><code>BCRYPT_ROUNDS=10</code></td><td>Nama sama dan langsung terpakai. Rentang yang diterima 4–15.</td></tr>
+        <tr><td>tidak ada</td><td><code>CORS_ORIGIN=http://localhost:5173</code></td><td>Laravel biasanya mengatur ini di <code>config/cors.php</code></td></tr>
+        <tr><td><code>VITE_API_BASE_URL="${APP_URL}/api"</code></td><td><code>VITE_API_URL=http://localhost:5000/api/v1</code> di <code>frontend/.env</code></td><td>Nama berbeda. Frontend membaca <code>VITE_API_URL</code>.</td></tr>
+        <tr><td><code>APP_KEY</code>, <code>SESSION_*</code>, <code>CACHE_STORE</code>, <code>QUEUE_CONNECTION</code>, <code>REDIS_*</code>, <code>MAIL_*</code>, <code>AWS_*</code>, <code>LOG_*</code>, Greenplum, Graph API, proxy</td><td>tidak dipakai</td><td>Fitur khusus Laravel / project kantor. Diabaikan oleh project ini.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Satu perbedaan teknis lagi: Laravel dan Vite bisa mengisi <code>${APP_NAME}</code> dari variabel lain. <code>dotenv</code> di backend tidak bisa (butuh library tambahan <code>dotenv-expand</code>), jadi tulis nilainya langsung.</p>
+
+    <h3>Apa yang terjadi bila isi <code>docs/.env</code> disalin mentah ke <code>backend/.env</code></h3>
+<pre class="code"><code>Invalid environment variables: {
+  DATABASE_URL: [ 'Required' ],
+  JWT_ACCESS_SECRET: [ 'Required' ],
+  JWT_REFRESH_SECRET: [ 'Required' ]
+}</code></pre>
+    <p>Pesan ini datang dari validasi Zod di <code>src/config/env.js</code>. Server berhenti sebelum menyala. Ini disengaja, supaya kesalahan konfigurasi ketahuan di awal.</p>
+  </section>
+
+  <section>
+    <h2>4. Pilihan: mendukung gaya <code>DB_HOST</code> terpisah</h2>
+    <p>Bila Anda lebih suka gaya Laravel karena lebih mudah dibaca, backend bisa diubah agar menerima <strong>salah satu</strong> dari dua cara: <code>DATABASE_URL</code>, atau lima variabel terpisah. Ada dua file yang perlu diubah: <code>src/config/env.js</code> (untuk server) dan <code>src/config/database.js</code> (untuk <code>sequelize-cli</code> saat migrate dan seed).</p>
+<pre class="code"><code><span class="c">// src/config/env.js — gambaran perubahan</span>
+<span class="c">// Build DATABASE_URL from DB_* parts when it is not set directly</span>
+if (!process.env.DATABASE_URL &amp;&amp; process.env.DB_HOST) {
+  const { DB_USERNAME, DB_PASSWORD, DB_HOST, DB_PORT = '5432', DB_DATABASE } = process.env;
+  process.env.DATABASE_URL =
+    `postgresql://${encodeURIComponent(DB_USERNAME)}:${encodeURIComponent(DB_PASSWORD)}@${DB_HOST}:${DB_PORT}/${DB_DATABASE}`;
+}</code></pre>
+    <p><code>encodeURIComponent</code> penting. Password yang mengandung <code>@</code>, <code>:</code>, <code>/</code>, atau <code>#</code> akan merusak URL bila tidak di-encode. Itu juga kesalahan yang paling sering terjadi saat menulis <code>DATABASE_URL</code> secara manual.</p>
+    <div class="grid2">
+<pre class="code"><code><span class="c"># Cara A (sekarang): satu URL</span>
+NODE_ENV=development
+PORT=5000
+DATABASE_URL=postgresql://postgres:PASSWORD@localhost:5432/booking_db
+DB_SSL=false</code></pre>
+<pre class="code"><code><span class="c"># Cara B (setelah diubah): gaya Laravel</span>
+NODE_ENV=development
+PORT=5000
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=booking_db
+DB_USERNAME=postgres
+DB_PASSWORD=PASSWORD
+DB_SSL=false</code></pre>
+    </div>
+    <p><strong>Rekomendasi:</strong> tetap pakai Cara A. Penyedia hosting (Neon, Supabase, Railway, Render) memberikan connection string dalam bentuk satu URL, sehingga bisa langsung ditempel saat deploy. Cara B hanya soal kenyamanan, dan menambah kode yang harus Anda jelaskan ke mentor.</p>
+  </section>
+
+  <section>
+    <h2>5. Risiko keamanan file <code>docs/.env</code></h2>
+    <div class="callout">
+      <strong>File ini berisi kredensial asli, bukan contoh</strong>
+      <ul>
+        <li>Password database lokal, database dev kantor, dan Greenplum kantor, ditambah alamat IP server internal.</li>
+        <li>Satu blok komentar berisi koneksi <code>postgres</code> ke IP VPS Anda. Port 5432 VPS sempat terbuka ke publik sebelum UFW diaktifkan.</li>
+        <li><code>APP_KEY</code> dan <code>JWT_SECRET</code> aplikasi KM Online.</li>
+      </ul>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>Pertanyaan</th><th>Jawaban</th></tr></thead>
+      <tbody>
+        <tr><td>Ikut ter-commit ke GitHub?</td><td>Tidak, selama <code>.gitignore</code> root tetap berisi <code>.env</code>. Pola tanpa garis miring berlaku di semua subfolder, termasuk <code>docs/.env</code>. Cek setelah <code>git init</code> dengan <code>git check-ignore -v docs/.env</code>.</td></tr>
+        <tr><td>Masih berisiko?</td><td>Ya. Folder <code>docs/</code> adalah folder yang akan Anda bagikan (laporan, artifact), dan folder project ini disinkronkan ke OneDrive. Satu salah zip atau salah upload dan kredensial kantor ikut keluar.</td></tr>
+        <tr><td>Sama dengan <code>fin-pro/.env.local</code>?</td><td>Isinya mirip tetapi tidak identik. Dua-duanya file project kantor dan sama-sama sebaiknya dipindahkan.</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Langkah yang disarankan</h3>
+    <ol>
+      <li>Pindahkan <code>docs/.env</code> dan <code>.env.local</code> ke folder project KM Online, atau ke folder di luar <code>fin-pro/</code>.</li>
+      <li>Bila password <code>postgres</code> di VPS sama dengan yang tertulis di file itu, ganti password tersebut. Port 5432 VPS sempat terbuka ke publik.</li>
+      <li>Untuk project booking, gunakan <code>backend/.env.example</code> sebagai satu-satunya model. File ini aman di-commit karena hanya berisi nilai contoh.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>6. Model <code>.env</code> yang benar untuk project ini</h2>
+    <div class="grid2">
+<pre class="code"><code><span class="c"># backend/.env</span>
+NODE_ENV=development
+PORT=5000
+DATABASE_URL=postgresql://postgres:PASSWORD@localhost:5432/booking_db
+DB_SSL=false
+JWT_ACCESS_SECRET=ganti-dengan-string-acak-min-16
+JWT_ACCESS_EXPIRES=15m
+JWT_REFRESH_SECRET=ganti-dengan-string-acak-lain
+JWT_REFRESH_EXPIRES=7d
+CORS_ORIGIN=http://localhost:5173
+BCRYPT_ROUNDS=10</code></pre>
+<pre class="code"><code><span class="c"># frontend/.env</span>
+VITE_API_URL=http://localhost:5000/api/v1</code></pre>
+    </div>
+    <p>Untuk membuat secret acak: <code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code>, jalankan dua kali (untuk access dan refresh).</p>
+  </section>
+
+  <footer>Dianalisa dari <code>docs/.env</code> (nilai rahasia tidak disalin ke dokumen ini), <code>backend/src/config/env.js</code>, <code>backend/src/config/database.js</code>, <code>backend/.env.example</code>, <code>frontend/.env.example</code>. Disimpan sebagai <code>docs/analisa-format-env.html</code>.</footer>
+</main>
