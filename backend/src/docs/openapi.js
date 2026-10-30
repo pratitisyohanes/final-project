@@ -1,5 +1,3 @@
-const env = require('../config/env');
-
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
 
 const ok = (description, data, meta) => ({
@@ -44,9 +42,9 @@ const secured = [{ bearerAuth: [] }];
 const meta = { page: 1, limit: 10, total: 1, totalPages: 1 };
 
 const sampleUser = { id: 'b3f1c2d4-1111-4a5b-9c8d-123456789abc', name: 'Budi Santoso', email: 'budi@example.com', phone: '081234567890', role: 'USER', isActive: true };
-const sampleService = { id: 1, categoryId: 1, name: 'Haircut & Styling', price: '75000', durationMinutes: 60, status: 'ACTIVE', category: { id: 1, name: 'Hair Care', slug: 'hair-care' } };
-const sampleSchedule = { id: 10, serviceId: 1, date: '2026-10-20T00:00:00.000Z', startTime: '09:00', endTime: '10:00', capacity: 2, bookedCount: 1, status: 'AVAILABLE', remaining: 1 };
-const sampleBooking = { id: 'f7a3e8b2-2222-4c1d-8e9f-abcdef123456', bookingCode: 'BK-20261011-7F3A9C', status: 'PENDING', totalPrice: '75000', service: { id: 1, name: 'Haircut & Styling' }, schedule: { id: 10, date: '2026-10-20T00:00:00.000Z', startTime: '09:00', endTime: '10:00' }, payment: { status: 'UNPAID', amount: '75000' } };
+const sampleService = { id: 1, categoryId: 1, name: 'Coop Site Survey', price: '150000', durationMinutes: 120, status: 'ACTIVE', category: { id: 1, name: 'Site Survey', slug: 'site-survey' } };
+const sampleSchedule = { id: 10, serviceId: 1, date: '2026-10-20T00:00:00.000Z', startTime: '09:00', endTime: '11:00', capacity: 2, bookedCount: 1, status: 'AVAILABLE', remaining: 1 };
+const sampleBooking = { id: 'f7a3e8b2-2222-4c1d-8e9f-abcdef123456', bookingCode: 'BK-20261011-7F3A9C', status: 'PENDING', totalPrice: '150000', service: { id: 1, name: 'Coop Site Survey' }, schedule: { id: 10, date: '2026-10-20T00:00:00.000Z', startTime: '09:00', endTime: '11:00' }, payment: { status: 'UNPAID', amount: '150000' } };
 
 const spec = {
   openapi: '3.0.3',
@@ -57,7 +55,8 @@ const spec = {
       'REST API for booking services. Roles: ADMIN manages services, schedules, customers and reports; USER books services. ' +
       'Relations: Category 1-N Service 1-N Schedule 1-N Booking 1-1 Payment; User 1-N Booking; Booking 1-N BookingStatusLog.',
   },
-  servers: [{ url: `http://localhost:${env.PORT}/api/v1`, description: 'Local' }],
+  // Relative URL so "Try it out" calls whichever host serves the docs (localhost or the VPS)
+  servers: [{ url: '/api/v1', description: 'Current host' }],
   tags: ['Auth', 'Users', 'Categories', 'Services', 'Schedules', 'Bookings', 'Payments', 'Reports'].map((name) => ({ name })),
   components: {
     securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } },
@@ -89,6 +88,12 @@ const spec = {
         properties: { email: { type: 'string', format: 'email' }, password: { type: 'string' } },
       },
       RefreshInput: { type: 'object', required: ['refreshToken'], properties: { refreshToken: { type: 'string' } } },
+      MfaTicketInput: { type: 'object', required: ['mfaToken'], properties: { mfaToken: { type: 'string', description: 'Ticket from /auth/login, valid 5 minutes' } } },
+      MfaCodeInput: {
+        type: 'object',
+        required: ['mfaToken', 'code'],
+        properties: { mfaToken: { type: 'string' }, code: { type: 'string', pattern: '^\\d{6}$', description: '6-digit code from the authenticator app' } },
+      },
       UpdateMeInput: {
         type: 'object',
         properties: { name: { type: 'string' }, phone: { type: 'string' }, currentPassword: { type: 'string' }, newPassword: { type: 'string' } },
@@ -168,6 +173,8 @@ const spec = {
         [404, 'Resource not found'],
         [409, 'Conflict: duplicate data, full slot or overlapping schedule'],
         [422, 'Input validation failed'],
+        [429, 'Too many attempts'],
+        [503, 'Login service (sso-pro) is not reachable'],
       ].map(([code, description]) => [
         `E${code}`,
         { description, content: { 'application/json': { schema: ref('ErrorResponse') } } },
@@ -186,9 +193,35 @@ const spec = {
     '/auth/login': {
       post: {
         tags: ['Auth'],
-        summary: 'Login and receive access + refresh tokens',
+        summary: 'Login; returns tokens, or an mfaToken when a second step is needed',
+        description:
+          'With AUTH_PROVIDER=sso the password is checked by sso-pro auth-service against LDAP. When the account has two-factor authentication the answer is { requiresMfa, mfaToken }; an ADMIN without it while MFA_ENFORCE_ADMIN=true gets { requiresMfaSetup, mfaToken }.',
         requestBody: jsonBody('LoginInput', { email: 'admin@booking.com', password: 'Admin12345' }),
-        responses: { 200: ok('Login successful', { user: sampleUser, accessToken: '<jwt>', refreshToken: '<jwt>' }), ...errors(401, 403, 422) },
+        responses: { 200: ok('Login successful', { user: sampleUser, accessToken: '<jwt>', refreshToken: '<jwt>' }), ...errors(401, 403, 422, 503) },
+      },
+    },
+    '/auth/mfa/verify': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Second login step: check the authenticator code',
+        requestBody: jsonBody('MfaCodeInput', { mfaToken: '<ticket>', code: '123456' }),
+        responses: { 200: ok('Login successful', { user: sampleUser, accessToken: '<jwt>', refreshToken: '<jwt>' }), ...errors(400, 401, 422, 429) },
+      },
+    },
+    '/auth/mfa/setup': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Start two-factor setup: returns a QR code for the authenticator app',
+        requestBody: jsonBody('MfaTicketInput', { mfaToken: '<ticket>' }),
+        responses: { 200: ok('Scan the QR code with your authenticator app', { secret: 'JBSWY3DPEHPK3PXP', otpauthUrl: 'otpauth://totp/...', qrCode: 'data:image/png;base64,...' }), ...errors(401, 409, 422) },
+      },
+    },
+    '/auth/mfa/enable': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Finish two-factor setup with the first code and log in',
+        requestBody: jsonBody('MfaCodeInput', { mfaToken: '<ticket>', code: '123456' }),
+        responses: { 200: ok('Two-factor authentication enabled', { user: sampleUser, accessToken: '<jwt>', refreshToken: '<jwt>' }), ...errors(400, 401, 409, 422, 429) },
       },
     },
     '/auth/refresh': {
@@ -243,19 +276,19 @@ const spec = {
         tags: ['Categories'],
         summary: 'List categories',
         parameters: [...paging, query('search', { type: 'string' })],
-        responses: { 200: ok('Category list', [{ id: 1, name: 'Hair Care', slug: 'hair-care', serviceCount: 2 }], meta) },
+        responses: { 200: ok('Category list', [{ id: 1, name: 'Site Survey', slug: 'site-survey', serviceCount: 2 }], meta) },
       },
       post: {
         tags: ['Categories'],
         summary: 'Create a category (admin)',
         security: secured,
-        requestBody: jsonBody('CategoryInput', { name: 'Hair Care' }),
-        responses: { 201: ok('Category created', { id: 1, name: 'Hair Care', slug: 'hair-care' }), ...errors(401, 403, 409, 422) },
+        requestBody: jsonBody('CategoryInput', { name: 'Site Survey' }),
+        responses: { 201: ok('Category created', { id: 1, name: 'Site Survey', slug: 'site-survey' }), ...errors(401, 403, 409, 422) },
       },
     },
     '/categories/{id}': {
-      get: { tags: ['Categories'], summary: 'Category detail', parameters: [pathParam('id')], responses: { 200: ok('Category detail', { id: 1, name: 'Hair Care' }), ...errors(404) } },
-      patch: { tags: ['Categories'], summary: 'Update a category (admin)', security: secured, parameters: [pathParam('id')], requestBody: jsonBody('CategoryInput', { name: 'Hair & Beauty' }), responses: { 200: ok('Category updated', { id: 1, name: 'Hair & Beauty' }), ...errors(401, 403, 404, 409) } },
+      get: { tags: ['Categories'], summary: 'Category detail', parameters: [pathParam('id')], responses: { 200: ok('Category detail', { id: 1, name: 'Site Survey' }), ...errors(404) } },
+      patch: { tags: ['Categories'], summary: 'Update a category (admin)', security: secured, parameters: [pathParam('id')], requestBody: jsonBody('CategoryInput', { name: 'Site Survey & Planning' }), responses: { 200: ok('Category updated', { id: 1, name: 'Site Survey & Planning' }), ...errors(401, 403, 404, 409) } },
       delete: { tags: ['Categories'], summary: 'Delete a category without services (admin)', security: secured, parameters: [pathParam('id')], responses: { 200: ok('Category deleted', null), ...errors(401, 403, 404, 409) } },
     },
     '/services': {
@@ -273,7 +306,7 @@ const spec = {
         ],
         responses: { 200: ok('Service list', [sampleService], meta), ...errors(422) },
       },
-      post: { tags: ['Services'], summary: 'Create a service (admin)', security: secured, requestBody: jsonBody('ServiceInput', { categoryId: 1, name: 'Haircut & Styling', description: 'Cut, wash and style', price: 75000, durationMinutes: 60 }), responses: { 201: ok('Service created', sampleService), ...errors(401, 403, 404, 422) } },
+      post: { tags: ['Services'], summary: 'Create a service (admin)', security: secured, requestBody: jsonBody('ServiceInput', { categoryId: 1, name: 'Coop Site Survey', description: 'Measure the land and plan the coop layout', price: 150000, durationMinutes: 120 }), responses: { 201: ok('Service created', sampleService), ...errors(401, 403, 404, 422) } },
     },
     '/services/{id}': {
       get: { tags: ['Services'], summary: 'Service detail', parameters: [pathParam('id')], responses: { 200: ok('Service detail', sampleService), ...errors(404) } },
@@ -403,7 +436,7 @@ const spec = {
         summary: 'Most booked services (admin)',
         security: secured,
         parameters: [...range, query('limit', { type: 'integer', default: 5 })],
-        responses: { 200: ok('Top services', { items: [{ serviceId: 1, serviceName: 'Haircut & Styling', totalBookings: 18, totalRevenue: 1350000 }] }), ...errors(401, 403) },
+        responses: { 200: ok('Top services', { items: [{ serviceId: 1, serviceName: 'Coop Site Survey', totalBookings: 18, totalRevenue: 2700000 }] }), ...errors(401, 403) },
       },
     },
     '/reports/busiest-schedules': {

@@ -6,40 +6,52 @@ const { sequelize, User, Category, Service, Schedule, Booking, Payment, BookingS
 const DAYS_BACK = 7;
 const DAYS_AHEAD = 14;
 
-const categories = ['Hair Care', 'Spa & Massage', 'Nail Care', 'Consultation'];
+const categories = ['Site Survey', 'Cage Installation', 'Maintenance & Repair', 'Flock Health', 'Consultation'];
 
+// capacity = field teams available per slot; slots run 09:00-17:00, so duration sets the slot count
 const services = [
-  { category: 'Hair Care', name: 'Haircut & Styling', price: 75000, durationMinutes: 60, capacity: 2, description: 'Haircut, wash and styling by a senior stylist.' },
-  { category: 'Hair Care', name: 'Hair Coloring', price: 250000, durationMinutes: 120, capacity: 1, description: 'Full hair coloring with premium products.' },
-  { category: 'Spa & Massage', name: 'Balinese Massage', price: 180000, durationMinutes: 90, capacity: 2, description: 'Traditional full body massage.' },
-  { category: 'Spa & Massage', name: 'Facial Treatment', price: 150000, durationMinutes: 60, capacity: 2, description: 'Deep cleansing facial for all skin types.' },
-  { category: 'Nail Care', name: 'Manicure & Pedicure', price: 120000, durationMinutes: 60, capacity: 3, description: 'Nail cleaning, shaping and polish.' },
-  { category: 'Consultation', name: 'Beauty Consultation', price: 50000, durationMinutes: 30, capacity: 1, description: 'One on one consultation with a beauty expert.' },
+  { category: 'Site Survey', name: 'Coop Site Survey', price: 150000, durationMinutes: 120, capacity: 2, description: 'Visit the farm, measure the land and plan the layer coop layout.' },
+  { category: 'Cage Installation', name: 'Battery Cage Installation (500 birds)', price: 1500000, durationMinutes: 240, capacity: 1, description: 'Assemble and install battery cages for up to 500 laying hens.' },
+  { category: 'Cage Installation', name: 'Battery Cage Installation (1,000 birds)', price: 2750000, durationMinutes: 480, capacity: 1, description: 'Full-day installation of battery cages for up to 1,000 laying hens.' },
+  { category: 'Maintenance & Repair', name: 'Cage Repair & Maintenance', price: 250000, durationMinutes: 120, capacity: 2, description: 'Fix bent wire, egg trays and doors, then check every cage row.' },
+  { category: 'Maintenance & Repair', name: 'Nipple Drinker System Setup', price: 350000, durationMinutes: 120, capacity: 2, description: 'Install or replace nipple drinker lines and the water regulator.' },
+  { category: 'Flock Health', name: 'Layer Vaccination Visit', price: 200000, durationMinutes: 90, capacity: 2, description: 'On-farm vaccination for laying hens by a poultry health officer.' },
+  { category: 'Consultation', name: 'Layer Farm Consultation', price: 100000, durationMinutes: 60, capacity: 3, description: 'One on one advice on feed, lighting and egg production.' },
 ];
 
 // [customerIndex, serviceIndex, dayOffset, slotIndex, finalStatus]
 const sampleBookings = [
-  [0, 0, -6, 1, 'COMPLETED'],
-  [1, 2, -6, 2, 'COMPLETED'],
-  [0, 3, -5, 3, 'COMPLETED'],
-  [1, 0, -4, 1, 'COMPLETED'],
-  [0, 4, -3, 0, 'CANCELLED'],
-  [1, 0, -2, 1, 'COMPLETED'],
-  [0, 2, -1, 1, 'COMPLETED'],
-  [1, 3, 1, 2, 'CONFIRMED'],
-  [0, 0, 2, 1, 'PENDING'],
-  [1, 5, 3, 4, 'PENDING'],
-  [0, 1, 4, 0, 'CONFIRMED'],
+  [0, 0, -6, 0, 'COMPLETED'],
+  [1, 6, -6, 2, 'COMPLETED'],
+  [1, 0, -5, 1, 'COMPLETED'],
+  [0, 1, -4, 0, 'COMPLETED'],
+  [1, 2, -3, 0, 'COMPLETED'],
+  [0, 5, -3, 1, 'CANCELLED'],
+  [0, 3, -2, 2, 'COMPLETED'],
+  [1, 5, -1, 0, 'COMPLETED'],
+  [0, 4, 1, 1, 'CONFIRMED'],
+  [1, 6, 2, 3, 'PENDING'],
+  [0, 0, 3, 0, 'PENDING'],
+  [1, 3, 4, 1, 'CONFIRMED'],
+  [0, 6, 5, 4, 'PENDING'],
 ];
 
 const TABLES = 'booking_status_logs, payments, bookings, schedules, services, categories, refresh_tokens, users';
 
 const resetTables = () => sequelize.query(`TRUNCATE ${TABLES} RESTART IDENTITY CASCADE`);
 
+// Fixed ids so pos-pro demo data can refer to the same accounts
+const DEMO_USER_IDS = {
+  admin: '0a000000-0000-4000-8000-000000000001',
+  budi: '0a000000-0000-4000-8000-000000000002',
+  siti: '0a000000-0000-4000-8000-000000000003',
+};
+
 const seedUsers = async () => {
   const [adminHash, userHash] = await Promise.all([bcrypt.hash('Admin12345', 10), bcrypt.hash('User12345', 10)]);
 
   const admin = await User.create({
+    id: DEMO_USER_IDS.admin,
     name: 'Admin Booking',
     email: 'admin@booking.com',
     phone: '081100000001',
@@ -48,8 +60,8 @@ const seedUsers = async () => {
   });
   const customers = await User.bulkCreate(
     [
-      { name: 'Budi Santoso', email: 'budi@example.com', phone: '081234567890' },
-      { name: 'Siti Rahma', email: 'siti@example.com', phone: '081298765432' },
+      { id: DEMO_USER_IDS.budi, name: 'Budi Santoso', email: 'budi@example.com', phone: '081234567890' },
+      { id: DEMO_USER_IDS.siti, name: 'Siti Rahma', email: 'siti@example.com', phone: '081298765432' },
     ].map((data) => ({ ...data, passwordHash: userHash })),
   );
   return { admin, customers };

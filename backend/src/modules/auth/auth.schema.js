@@ -48,4 +48,15 @@ const updateMeSchema = z.object({
     }),
 });
 
-module.exports = { registerSchema, loginSchema, refreshTokenSchema, updateMeSchema };
+const mfaToken = z.string({ required_error: 'Verification session is missing' }).min(1, 'Verification session is missing');
+
+const mfaTicketSchema = z.object({ body: z.object({ mfaToken }) });
+
+const mfaCodeSchema = z.object({
+  body: z.object({
+    mfaToken,
+    code: z.string().trim().regex(/^\d{6}$/, 'Code must be 6 digits'),
+  }),
+});
+
+module.exports = { registerSchema, loginSchema, refreshTokenSchema, updateMeSchema, mfaTicketSchema, mfaCodeSchema };

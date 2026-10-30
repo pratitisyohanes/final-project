@@ -65,3 +65,27 @@ describe('request pipeline', () => {
     expect(res.body.openapi).toBe('3.0.3');
   });
 });
+
+// The MFA step must be impossible without the ticket from a passed password step
+describe('two-factor login step', () => {
+  test('a code alone is not enough', async () => {
+    const res = await request(app).post('/api/v1/auth/mfa/verify').send({ email: 'admin@booking.com', code: '123456' });
+    expect(res.status).toBe(422);
+    expect(res.body.errors.map((e) => e.field)).toContain('mfaToken');
+  });
+
+  test('a forged ticket is refused before the database', async () => {
+    const res = await request(app).post('/api/v1/auth/mfa/verify').send({ mfaToken: 'forged.ticket.value', code: '123456' });
+    expect(res.status).toBe(401);
+  });
+
+  test('an access token cannot be used as a ticket', async () => {
+    const res = await request(app).post('/api/v1/auth/mfa/verify').send({ mfaToken: adminToken, code: '123456' });
+    expect(res.status).toBe(401);
+  });
+
+  test('code must be 6 digits', async () => {
+    const res = await request(app).post('/api/v1/auth/mfa/enable').send({ mfaToken: 'x', code: '12ab' });
+    expect(res.status).toBe(422);
+  });
+});

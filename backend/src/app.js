@@ -28,6 +28,8 @@ app.get('/health', (req, res) =>
   res.json({ success: true, message: 'OK', data: { uptime: Math.round(process.uptime()) } }),
 );
 
+// Server-to-server routes for pos-api; mounted before apiLimiter because every call comes from 127.0.0.1
+app.use('/api/v1/internal', require('./modules/internal/internal.routes'));
 app.use('/api/v1', apiLimiter, routes);
 
 app.use(notFound);

@@ -1,9 +1,8 @@
-const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const { User, RefreshToken } = require('../../models');
-const env = require('../../config/env');
 const ApiError = require('../../utils/ApiError');
-const compact = require('../../utils/compact');
+const provider = require('./providers');
+const mfaService = require('./mfa.service');
 const {
   signAccessToken,
   signRefreshToken,
@@ -22,28 +21,35 @@ const issueTokens = async (user) => {
   return { accessToken, refreshToken };
 };
 
-const register = async ({ name, email, phone, password }) => {
-  const existing = await User.findOne({ where: { email } });
-  if (existing) throw ApiError.conflict('Email is already registered');
-
-  const passwordHash = await bcrypt.hash(password, env.BCRYPT_ROUNDS);
-  const user = await User.create({ name, email, phone, passwordHash, role: 'USER' });
+// Last step of every successful login, whatever the provider and whether MFA was needed
+const startSession = async (user) => {
+  await RefreshToken.destroy({ where: { userId: user.id, expiresAt: { [Op.lt]: new Date() } } });
+  await user.update({ lastLoginAt: new Date() });
 
   const tokens = await issueTokens(user);
   return { user, ...tokens };
 };
 
-const login = async ({ email, password }) => {
-  const user = await User.scope('withPassword').findOne({ where: { email } });
-  const isValid = user && (await bcrypt.compare(password, user.passwordHash));
-  if (!isValid) throw ApiError.unauthorized('Invalid email or password');
+const register = async (data, context) => {
+  const user = await provider.register(data, context);
+  return startSession(user);
+};
+
+// Password step: either a full session, or a ticket for the MFA step (no access token yet)
+const login = async (credentials, context) => {
+  const user = await provider.authenticate(credentials, context);
   if (!user.isActive) throw ApiError.forbidden('Your account has been deactivated');
 
-  await RefreshToken.destroy({ where: { userId: user.id, expiresAt: { [Op.lt]: new Date() } } });
-
-  const tokens = await issueTokens(user);
-  return { user, ...tokens };
+  const challenge = mfaService.challengeFor(user);
+  if (challenge) return challenge;
+  return startSession(user);
 };
+
+const verifyMfa = async ({ mfaToken, code }) => startSession(await mfaService.verifyLogin(mfaToken, code));
+
+const setupMfa = ({ mfaToken }) => mfaService.startSetup(mfaToken);
+
+const enableMfa = async ({ mfaToken, code }) => startSession(await mfaService.finishSetup(mfaToken, code));
 
 // Rotate tokens: the old refresh token is deleted and a new pair is issued
 const refresh = async (refreshToken) => {
@@ -60,10 +66,19 @@ const refresh = async (refreshToken) => {
   if (!stored || stored.expiresAt < new Date()) throw ApiError.unauthorized('Refresh token is invalid or expired');
   if (!stored.user.isActive) throw ApiError.forbidden('Your account has been deactivated');
 
+  // With sso this re-reads LDAP; a user moved to cn=disabled loses every session here
+  let user;
+  try {
+    user = await provider.syncOnRefresh(stored.user);
+  } catch (error) {
+    if (error.statusCode === 403) await RefreshToken.destroy({ where: { userId: stored.user.id } });
+    throw error;
+  }
+
   await stored.destroy();
 
-  const tokens = await issueTokens(stored.user);
-  return { user: stored.user, ...tokens };
+  const tokens = await issueTokens(user);
+  return { user, ...tokens };
 };
 
 const logout = async (userId, refreshToken) => {
@@ -76,18 +91,10 @@ const getMe = async (userId) => {
   return user;
 };
 
-const updateMe = async (userId, { name, phone, currentPassword, newPassword }) => {
+const updateMe = async (userId, data, context) => {
   const user = await User.scope('withPassword').findByPk(userId);
   if (!user) throw ApiError.notFound('User not found');
-
-  const data = compact({ name, phone });
-  if (newPassword) {
-    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!isValid) throw ApiError.badRequest('Current password is incorrect');
-    data.passwordHash = await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS);
-  }
-
-  return user.update(data);
+  return provider.updateProfile(user, data, context);
 };
 
-module.exports = { register, login, refresh, logout, getMe, updateMe };
+module.exports = { register, login, verifyMfa, setupMfa, enableMfa, refresh, logout, getMe, updateMe };

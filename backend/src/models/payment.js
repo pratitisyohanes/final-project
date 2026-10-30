@@ -8,6 +8,8 @@ module.exports = (sequelize, DataTypes) => {
       method: { type: DataTypes.ENUM('CASH', 'TRANSFER', 'EWALLET') },
       status: { type: DataTypes.ENUM('UNPAID', 'PAID', 'REFUNDED'), allowNull: false, defaultValue: 'UNPAID' },
       paidAt: { type: DataTypes.DATE },
+      // Invoice number of the POS sale that settled this booking
+      externalRef: { type: DataTypes.STRING(40), unique: true },
     },
     { tableName: 'payments', underscored: true },
   );

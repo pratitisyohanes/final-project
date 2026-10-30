@@ -3,6 +3,7 @@ const { sequelize, User, Booking, Service, Schedule, RefreshToken } = require('.
 const ApiError = require('../../utils/ApiError');
 const compact = require('../../utils/compact');
 const { getPagination, buildMeta, getSort } = require('../../utils/pagination');
+const { forgetProfile } = require('../auth/ssoProfile.service');
 
 // Booking count as a subquery so pagination stays a simple single-table query
 const bookingCount = [
@@ -57,8 +58,9 @@ const updateCustomer = async (id, data) => {
   if (!user) throw ApiError.notFound('Customer not found');
   await user.update(data);
 
-  // Deactivated users lose every active session
+  // Deactivated users lose every active session; SSO users are re-checked on their next request
   if (data.isActive === false) await RefreshToken.destroy({ where: { userId: id } });
+  forgetProfile(id);
 
   return user;
 };
