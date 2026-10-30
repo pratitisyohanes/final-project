@@ -32,7 +32,7 @@ const envSchema = z.object({
   MFA_ENFORCE_ADMIN: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
   // 64 hex chars (32 bytes) used to encrypt TOTP secrets at rest
   MFA_ENCRYPTION_KEY: optional(z.string().regex(/^[0-9a-f]{64}$/i, 'MFA_ENCRYPTION_KEY must be 64 hex characters')),
-  MFA_ISSUER: z.string().min(1).default('KandangMart'),
+  MFA_ISSUER: z.string().min(1).default('ELEFEZ FARM'),
 
   // Single sign-on (KandangID OIDC): RS256 user tokens are checked with the public keys at this URL
   SSO_JWKS_URL: optional(z.string().url('SSO_JWKS_URL must be a URL like http://127.0.0.1:5002/.well-known/jwks.json')),

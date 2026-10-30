@@ -17,7 +17,7 @@ export default function SsoLogin({ mode = 'login', subtitle }) {
     setIsLeaving(true);
     startLogin({ returnTo, prompt }).catch(() => {
       setIsLeaving(false);
-      toast.error('Could not open the KandangID login page');
+      toast.error('Could not open the ELEFEZ FARM login page');
     });
   };
 
@@ -36,10 +36,10 @@ export default function SsoLogin({ mode = 'login', subtitle }) {
     >
       <div className="space-y-4">
         <p className="text-sm text-slate-600">
-          KandangMart Booking and POS share one account. You continue on the KandangID page and come back here; if you are already logged in there, it takes a second.
+          ELEFEZ FARM Booking and POS share one account. You continue on the ELEFEZ FARM login page and come back here; if you are already logged in there, it takes a second.
         </p>
         <Button className="w-full" size="lg" isLoading={isLeaving} onClick={() => go(isRegister ? 'create' : undefined)}>
-          {isRegister ? 'Create account with KandangID' : 'Log in with KandangID'}
+          {isRegister ? 'Create account with ELEFEZ FARM' : 'Log in with ELEFEZ FARM'}
         </Button>
       </div>
     </AuthCard>

@@ -17,6 +17,8 @@ const services = [
   { category: 'Maintenance & Repair', name: 'Nipple Drinker System Setup', price: 350000, durationMinutes: 120, capacity: 2, description: 'Install or replace nipple drinker lines and the water regulator.' },
   { category: 'Flock Health', name: 'Layer Vaccination Visit', price: 200000, durationMinutes: 90, capacity: 2, description: 'On-farm vaccination for laying hens by a poultry health officer.' },
   { category: 'Consultation', name: 'Layer Farm Consultation', price: 100000, durationMinutes: 60, capacity: 3, description: 'One on one advice on feed, lighting and egg production.' },
+  // Appended last so existing service ids stay the same; pos-pro links its cages to this one by id
+  { category: 'Cage Installation', name: 'Battery Cage Installation (up to 50 birds)', price: 250000, durationMinutes: 120, capacity: 2, description: 'Assemble and install a small set of battery cages for up to 50 laying hens.' },
 ];
 
 // [customerIndex, serviceIndex, dayOffset, slotIndex, finalStatus]

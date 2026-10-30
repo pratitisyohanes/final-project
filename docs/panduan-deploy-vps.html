@@ -1,0 +1,304 @@
+<title>Deploy POS dan SSO</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one reading column with numbered stages from database to go-live */
+  :root {
+    --bg: #f5f7f8; --surface: #ffffff; --fg: #17242b; --muted: #55666f; --line: #d5dee2;
+    --accent: #0b6e6e; --accent-soft: #dcefee; --code-bg: #14212a; --code-fg: #dcebea;
+    --warn: #8a5300; --warn-soft: #fbf0db; --danger: #a12a2a; --danger-soft: #fae6e4;
+    --sans: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10191f; --surface: #17232a; --fg: #e4edf0; --muted: #9db0b9; --line: #2c3c45;
+      --accent: #58c7c0; --accent-soft: #173a3b; --code-bg: #0b1317; --code-fg: #dcebea;
+      --warn: #efbe6c; --warn-soft: #39290f; --danger: #f29a92; --danger-soft: #41201e; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10191f; --surface: #17232a; --fg: #e4edf0; --muted: #9db0b9; --line: #2c3c45;
+    --accent: #58c7c0; --accent-soft: #173a3b; --code-bg: #0b1317; --code-fg: #dcebea;
+    --warn: #efbe6c; --warn-soft: #39290f; --danger: #f29a92; --danger-soft: #41201e; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg); font: 400 16px/1.65 var(--sans);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 64px;
+  }
+  main { max-width: 760px; margin: 0 auto; display: grid; gap: 36px; }
+  main > * { min-width: 0; }
+  h1 { font-size: 2.1rem; line-height: 1.2; font-weight: 700; margin: 0 0 12px; text-wrap: balance; }
+  h2 { font-size: 1.35rem; line-height: 1.3; font-weight: 700; margin: 0 0 10px; text-wrap: balance; }
+  h3 { font-size: 1.02rem; font-weight: 600; margin: 16px 0 4px; }
+  p { margin: 0 0 10px; }
+  p:last-child { margin-bottom: 0; }
+  .lead { color: var(--muted); font-size: 1.05rem; max-width: 62ch; }
+  .where { font-size: .84rem; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+  code { font: 500 .88em var(--mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  pre code { all: unset; }
+  .note { padding: 14px 16px; border-radius: 8px; background: var(--warn-soft); }
+  .note.danger { background: var(--danger-soft); }
+  .note strong:first-child { display: block; margin-bottom: 4px; color: var(--warn); }
+  .note.danger strong:first-child { color: var(--danger); }
+  .cmd { position: relative; margin: 10px 0; }
+  pre { margin: 0; padding: 12px 74px 12px 14px; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; overflow-x: auto; font: 400 .82rem/1.6 var(--mono); }
+  .copy { position: absolute; top: 7px; right: 7px; padding: 3px 9px; border: 0; border-radius: 5px; cursor: pointer; background: var(--accent); color: var(--bg); font: 500 .76rem var(--sans); }
+  .copy:focus-visible, a:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .94rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); }
+  ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+  @media (max-width: 440px) { h1 { font-size: 1.7rem; } }
+</style>
+
+<main>
+  <header>
+    <h1>Deploy POS dan SSO ke VPS</h1>
+    <p class="lead">Ya, langkah berikutnya memang database. Tapi urutannya POS dulu, baru SSO. POS hanya butuh PostgreSQL dan login booking yang sudah jalan, sedangkan SSO butuh LDAP tambahan di VPS 1 GB ini dan mengubah cara login booking.</p>
+  </header>
+
+  <section class="note danger">
+    <strong>Kerjakan pertama: password postgres</strong>
+    <p>Repo <code>final-project</code> publik, dan log yang sudah ter-push menulis bahwa password <code>postgres</code> di VPS masih password lama yang bocor. Kalau belum diganti, ganti sekarang di terminal VPS, lalu cek RAM dan proses yang sedang jalan.</p>
+    <div class="cmd"><pre>sudo -u postgres psql -c "\password postgres"
+free -m
+pm2 list</pre></div>
+  </section>
+
+  <section>
+    <h2>1. Siapkan database POS</h2>
+    <p class="where">Terminal VPS</p>
+    <p>Blok ini membuat <code>pos_db</code>, folder aplikasi, dan file <code>.env</code> POS. Password dibuat acak dan langsung masuk ke file, jadi tidak perlu kamu ketik. <code>JWT_ACCESS_SECRET</code> dan <code>INTERNAL_API_KEY</code> sengaja sama dengan booking supaya akun dan integrasinya nyambung.</p>
+    <div class="cmd"><pre>sudo mkdir -p /var/www/pos/backend /var/www/pos/frontend/dist /var/www/sso/backend
+sudo chown -R "$USER": /var/www/pos /var/www/sso
+
+POS_PW=$(openssl rand -hex 24)
+sudo -u postgres psql -c "CREATE ROLE pos_user LOGIN PASSWORD '$POS_PW';"
+sudo -u postgres psql -c "CREATE DATABASE pos_db OWNER pos_user;"
+
+BOOKING_ENV=/var/www/booking/backend/.env
+grep -q '^INTERNAL_API_KEY=.' "$BOOKING_ENV" || printf '\nINTERNAL_API_KEY=%s\n' "$(openssl rand -hex 32)" >> "$BOOKING_ENV"
+JWT=$(grep '^JWT_ACCESS_SECRET=' "$BOOKING_ENV" | cut -d= -f2-)
+KEY=$(grep '^INTERNAL_API_KEY=' "$BOOKING_ENV" | cut -d= -f2-)
+
+umask 077
+cat > /var/www/pos/backend/.env &lt;&lt;EOF
+NODE_ENV=production
+PORT=5001
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=pos_db
+DB_USERNAME=pos_user
+DB_PASSWORD=$POS_PW
+DB_SSL=false
+JWT_ACCESS_SECRET=$JWT
+BOOKING_API_URL=http://127.0.0.1:5000/api/v1
+INTERNAL_API_KEY=$KEY
+BOOKING_TIMEOUT_MS=3000
+CORS_ORIGIN=https://pos.pratitis.net
+SSO_AUDIENCE=pos-api
+EOF
+umask 022
+pm2 restart booking-api --update-env
+pm2 list</pre></div>
+  </section>
+
+  <section>
+    <h2>2. Pasang Nginx dan HTTPS</h2>
+    <p class="where">WinSCP, lalu terminal VPS</p>
+    <p>Di WinSCP, upload dua file ini ke <code>/home/pratitis-yohanes/</code>: <code>pos-pro/deploy/nginx/pos.pratitis.net.conf</code> dan <code>sso-pro/deploy/nginx/sso.pratitis.net.conf</code>. Setelah itu jalankan:</p>
+    <div class="cmd"><pre>cd ~
+sudo cp pos.pratitis.net.conf sso.pratitis.net.conf /etc/nginx/sites-available/
+sudo ln -s ../sites-available/pos.pratitis.net.conf /etc/nginx/sites-enabled/
+sudo ln -s ../sites-available/sso.pratitis.net.conf /etc/nginx/sites-enabled/
+sudo nginx -t &amp;&amp; sudo systemctl reload nginx
+sudo certbot --nginx -d pos.pratitis.net -d sso.pratitis.net --redirect
+ls /etc/nginx/sites-available/</pre></div>
+    <h3>Blokir route internal booking</h3>
+    <p>Jangan timpa file booking di server dengan file dari repo, karena file di server sudah berisi pengaturan HTTPS dari certbot. Buka file booking di <code>sites-available</code> dengan <code>sudo nano</code>, lalu tambahkan blok ini di dalam <code>server</code> yang punya <code>listen 443 ssl</code>, sebelum <code>location /api/</code>:</p>
+    <div class="cmd"><pre>location /api/v1/internal/ {
+    return 404;
+}</pre></div>
+    <div class="cmd"><pre>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</pre></div>
+  </section>
+
+  <section>
+    <h2>3. Isi GitHub Secrets</h2>
+    <p class="where">GitHub, tiap repo</p>
+    <p>Buka Settings, Secrets and variables, Actions, New repository secret. Lakukan di <code>pos-pro</code> dan <code>sso-pro</code>. Di <code>final-project</code>, cek apakah semuanya sudah ada.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Secret</th><th>Nilai</th><th>Dipakai di</th></tr></thead>
+        <tbody>
+          <tr><td><code>VPS_HOST</code></td><td><code>103.127.134.81</code></td><td>Semua</td></tr>
+          <tr><td><code>VPS_USER</code></td><td><code>pratitis-yohanes</code></td><td>Semua</td></tr>
+          <tr><td><code>VPS_PORT</code></td><td><code>22</code></td><td>Semua</td></tr>
+          <tr><td><code>VPS_SSH_KEY</code></td><td>Seluruh isi file <code>~/.ssh/pratitis_vps</code> di laptop. Tempel hanya di GitHub.</td><td>Semua</td></tr>
+          <tr><td><code>APP_URL</code></td><td><code>https://pos.pratitis.net</code> untuk POS, <code>https://booking.pratitis.net</code> untuk booking</td><td>POS dan booking</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:10px">Lalu buka tab Actions di <code>final-project</code>. Kalau job deploy terakhir gagal karena secret kosong, klik Re-run setelah secret terisi. Job itu menjalankan migrasi, jadi backup dulu:</p>
+    <div class="cmd"><pre>sudo -u postgres pg_dump booking_db &gt; ~/booking_db_backup_$(date +%F).sql
+ls -la ~/booking_db_backup_*</pre></div>
+  </section>
+
+  <section>
+    <h2>4. Commit pos-pro dan deploy</h2>
+    <p class="where">Terminal laptop, folder pos-pro</p>
+    <p><code>pos-pro</code> belum ter-push penuh: masih ada 17 perubahan untuk SSO dan MFA di laptop. Tes (28 lolos) dan build sudah lulus. File <code>package-lock.json</code> di root kosong dan tidak perlu ikut, jadi perintah ini hanya mengambil <code>backend</code> dan <code>frontend</code>. Push akan langsung men-deploy POS.</p>
+    <div class="cmd"><pre>git add backend frontend
+git diff --cached --stat
+git commit -m "feat: add SSO login and MFA step"
+git push origin main</pre></div>
+    <p>Setelah job Actions hijau, isi data demo. Data ini memakai id akun dan layanan demo booking, jadi hanya cocok kalau production booking dibuat dari seeder atau dump demo.</p>
+    <p class="where">Terminal VPS</p>
+    <div class="cmd"><pre>cd /var/www/pos/backend
+npx sequelize-cli db:seed:all --env production
+curl -s http://127.0.0.1:5001/api/v1/health
+free -m</pre></div>
+    <p>Sampai di sini, <code>https://pos.pratitis.net</code> sudah bisa dibuka dan login memakai akun booking. Cek <code>free -m</code> sebelum lanjut ke SSO. Kalau RAM dan swap sudah sesak, tunda SSO dan pastikan presentasi aman dulu.</p>
+  </section>
+
+  <section class="note">
+    <strong>Tahap SSO belum pernah dicoba di VPS ini</strong>
+    <p>Perintah di bawah saya susun dari kode dan README <code>sso-pro</code>. Jalankan bertahap dan berhenti kalau ada error. Di tahap 7, login booking dan POS berpindah ke LDAP, jadi kerjakan saat ada waktu untuk memperbaiki kalau ada masalah.</p>
+  </section>
+
+  <section>
+    <h2>5. Pasang LDAP dan database SSO</h2>
+    <p class="where">WinSCP, lalu terminal VPS</p>
+    <p>Upload folder <code>sso-pro/ldap/ldif</code> ke <code>/home/pratitis-yohanes/ldif</code>, lalu jalankan blok ini. Akses LDAP dibatasi ke server sendiri. Password admin LDAP disimpan di <code>~/.ldap-admin</code>, dan password akun layanan <code>service-secret</code> dari repo publik langsung diganti.</p>
+    <div class="cmd"><pre>LDAP_ADMIN=$(openssl rand -hex 24)
+SVC_PW=$(openssl rand -hex 24)
+SSO_PW=$(openssl rand -hex 24)
+( umask 077; echo "$LDAP_ADMIN" &gt; ~/.ldap-admin )
+
+sudo debconf-set-selections &lt;&lt;EOF
+slapd slapd/password1 password $LDAP_ADMIN
+slapd slapd/password2 password $LDAP_ADMIN
+slapd slapd/domain string kandang.local
+slapd shared/organization string KandangMart
+slapd slapd/no_configuration boolean false
+EOF
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y slapd ldap-utils
+sudo sed -i 's|^SLAPD_SERVICES=.*|SLAPD_SERVICES="ldap://127.0.0.1:389/ ldapi:///"|' /etc/default/slapd
+sudo systemctl restart slapd
+
+ADMIN_DN="cn=admin,dc=kandang,dc=local"
+ldapadd -x -H ldap://127.0.0.1 -D "$ADMIN_DN" -w "$LDAP_ADMIN" -f ~/ldif/bootstrap.ldif
+sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f ~/ldif/acl.ldif
+ldappasswd -x -H ldap://127.0.0.1 -D "$ADMIN_DN" -w "$LDAP_ADMIN" -s "$SVC_PW" "cn=auth-service,ou=services,dc=kandang,dc=local"
+
+sudo -u postgres psql -c "CREATE ROLE sso_user LOGIN PASSWORD '$SSO_PW';"
+sudo -u postgres psql -c "CREATE DATABASE sso_db OWNER sso_user;"
+
+umask 077
+cat &gt; /var/www/sso/backend/.env &lt;&lt;EOF
+NODE_ENV=production
+HOST=127.0.0.1
+PORT=5002
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=sso_db
+DB_USERNAME=sso_user
+DB_PASSWORD=$SSO_PW
+DB_SSL=false
+LDAP_URL=ldap://127.0.0.1:389
+LDAP_BASE_DN=dc=kandang,dc=local
+LDAP_BIND_DN=cn=auth-service,ou=services,dc=kandang,dc=local
+LDAP_BIND_PASSWORD=$SVC_PW
+JWT_PRIVATE_KEY_PATH=./keys/private.pem
+JWT_KEY_ID=kid-2026-10
+TOKEN_ISSUER=kandangid
+PUBLIC_URL=https://sso.pratitis.net
+USER_AUDIENCE=booking-api,pos-api
+COOKIE_SECURE=true
+MFA_ENFORCE_ADMIN=false
+MFA_ENCRYPTION_KEY=$(openssl rand -hex 32)
+MFA_ISSUER=KandangMart
+EOF
+umask 022</pre></div>
+    <p>Akun demo ikut masuk ke LDAP dengan password demo yang memang sudah ada di repo, dan id-nya sama dengan seeder booking. Kalau akun di production booking berbeda, <code>uid</code> di <code>bootstrap.ldif</code> perlu disamakan dulu dengan id di <code>booking_db</code>.</p>
+  </section>
+
+  <section>
+    <h2>6. Deploy auth-service</h2>
+    <p class="where">GitHub, lalu terminal VPS</p>
+    <p>Di repo <code>sso-pro</code>, buka Actions, pilih CI/CD, lalu Run workflow. Deploy pertama bisa gagal di health check karena kunci tanda tangan belum ada. Itu wajar selama kode sudah terunggah. Buat kuncinya, lalu daftarkan aplikasi:</p>
+    <div class="cmd"><pre>cd /var/www/sso/backend
+npm run keys:generate
+pm2 startOrReload ecosystem.config.js --update-env
+pm2 save
+npm run client:create -- booking-api "Booking API" "auth:validate users:read users:write"
+npm run client:web -- booking-web "Booking" "https://booking.pratitis.net"
+npm run client:web -- pos-web "POS" "https://pos.pratitis.net"
+curl -s http://127.0.0.1:5002/api/v1/health</pre></div>
+    <p>Simpan secret yang muncul dari <code>client:create</code>, karena dibutuhkan di tahap berikutnya. Jangan tempel secret itu ke chat.</p>
+  </section>
+
+  <section>
+    <h2>7. Sambungkan booking dan POS ke SSO</h2>
+    <p class="where">Terminal VPS</p>
+    <p>Ganti <code>ISI_SECRET_CLIENT_CREATE</code> dengan secret dari tahap 6.</p>
+    <div class="cmd"><pre>cat &gt;&gt; /var/www/booking/backend/.env &lt;&lt;'EOF'
+
+AUTH_PROVIDER=sso
+AUTH_SERVICE_URL=http://127.0.0.1:5002
+AUTH_CLIENT_ID=booking-api
+AUTH_CLIENT_SECRET=ISI_SECRET_CLIENT_CREATE
+SSO_JWKS_URL=http://127.0.0.1:5002/.well-known/jwks.json
+SSO_ISSUER=https://sso.pratitis.net
+EOF
+cat &gt;&gt; /var/www/pos/backend/.env &lt;&lt;'EOF'
+SSO_JWKS_URL=http://127.0.0.1:5002/.well-known/jwks.json
+SSO_ISSUER=https://sso.pratitis.net
+EOF
+pm2 restart booking-api pos-api --update-env
+pm2 list</pre></div>
+    <p class="where">Laptop</p>
+    <p>Tombol SSO baru muncul kalau frontend dibangun dengan variabelnya. Tambahkan dua baris ini di bagian <code>env</code> langkah build pada <code>.github/workflows/deploy.yml</code>, lalu commit dan push:</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Project</th><th>Baris yang ditambahkan</th></tr></thead>
+        <tbody>
+          <tr><td><code>fin-pro</code></td><td><code>VITE_SSO_URL: https://sso.pratitis.net</code><br><code>VITE_SSO_CLIENT_ID: booking-web</code></td></tr>
+          <tr><td><code>pos-pro</code></td><td><code>VITE_SSO_URL: https://sso.pratitis.net</code><br><code>VITE_SSO_CLIENT_ID: pos-web</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:10px">Kalau login bermasalah, hapus baris yang baru ditambahkan dari kedua <code>.env</code> dan jalankan lagi <code>pm2 restart booking-api pos-api --update-env</code>. Booking dan POS kembali ke login lokal.</p>
+  </section>
+</main>
+
+<script>
+  // Add a copy button to every command block
+  document.querySelectorAll('.cmd').forEach((block) => {
+    const button = document.createElement('button');
+    button.className = 'copy';
+    button.type = 'button';
+    button.textContent = 'Salin';
+    button.addEventListener('click', async () => {
+      const pre = block.querySelector('pre');
+      try {
+        await navigator.clipboard.writeText(pre.innerText);
+        button.textContent = 'Tersalin';
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents(pre);
+        const selection = getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        button.textContent = 'Tekan Ctrl+C';
+      }
+      setTimeout(() => { button.textContent = 'Salin'; }, 1800);
+    });
+    block.append(button);
+  });
+</script>
