@@ -48,6 +48,7 @@ jobs:
       - run: npm run build
         env:
           VITE_API_URL: /api/v1
+          VITE_POS_URL: https://pos.pratitis.net
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
