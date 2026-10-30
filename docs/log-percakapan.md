@@ -152,3 +152,131 @@ Panduan acuan: `rules/vps/lanjutan-swap-domain-github.md` (lembar kerja dengan t
 
 - `.gitignore` root, `backend/.gitignore`, `frontend/.gitignore`, `backend/.dockerignore`: pola `.env`, `.env.*`, `*.env`, `!.env.example`. Diuji di repo percobaan: `.env.local`, `docs/.env`, `backend/.env`, `backend/.env.backup`, `frontend/.env` diabaikan; hanya `.env.example` yang ikut.
 - Panduan: `docs/panduan-push-github.html` (artifact https://claude.ai/artifact/SQihe2K8NMRyW475pzRRGw). Folder belum `git init`; repo GitHub masih kosong.
+
+## Sesi 18 Oktober 2026: push GitHub, file SQL, cara menjalankan
+
+- Project sudah di-push oleh user (commit eaad7ab). Actions: Backend tests + Frontend build hijau; Deploy to VPS gagal di "Set up SSH key" karena 5 secrets belum diisi.
+- File SQL baru (dibuat dari migration + seeder lewat PostgreSQL sementara, lalu diuji import sebagai booking_user, migrate no-op, API jalan): `backend/sql/schema.sql` (struktur + sequelize_meta) dan `backend/sql/booking_db.sql` (struktur + data demo, jadwal 11 Okt – 1 Nov 2026). Baris khusus PG17 dibuang.
+- Temuan: seeder menolak berjalan saat NODE_ENV=production. Perintah seed di panduan VPS diganti `NODE_ENV=development npx sequelize-cli db:seed:all`.
+- Panduan: `rules/2026-10-18-sql-dan-cara-menjalankan.html` (artifact https://claude.ai/artifact/8yjvwebM8teYVpC5kZyipu).
+
+## Sesi 18 Oktober 2026: WinSCP
+
+- User sudah membuat `booking_user` + `booking_db` + `ALTER SCHEMA public OWNER` di VPS (PostgreSQL 12.22), tetapi memakai password lama yang bocor. Disarankan `\password booking_user`.
+- Panduan WinSCP (SQL, backend dengan file mask `| node_modules/; coverage/; .env; .env.backup`, `.env` server via editor + 0600, import + PM2 lewat PuTTY, upload isi `dist`, Synchronize): `rules/2026-10-18-winscp-kirim-ke-vps.html` (artifact https://claude.ai/artifact/YahcapTEogYFx9FXPh5AKW).
+- `booking_db.sql` sudah di-upload user ke `/var/www/booking/`. Daftar file per item (kirim: src, sql, .sequelizerc, ecosystem.config.js, package.json, package-lock.json; jangan: .env, .env.backup, node_modules, tests, file Docker) + langkah frontend dist: `rules/2026-10-18-daftar-file-ke-vps.html` (artifact https://claude.ai/artifact/UgYqGgMX3N9yRBNdvSTFmP).
+- SSH dari VS Code: `ssh booking-vps` (file `~/.ssh/config` + kunci `~/.ssh/pratitis_vps` hasil konversi .ppk). Sudah diuji login.
+
+## Sesi 18 Oktober 2026: DEPLOY KE VPS SELESAI (HTTP)
+
+- Online: http://booking.pratitis.net (frontend, /api/v1, /api/docs, /health). Login admin diuji OK.
+- Dikerjakan lewat `ssh booking-vps`: upload backend (tanpa .env/node_modules), password `booking_user` diganti acak (hanya di `/var/www/booking/backend/.env`, 600), import `booking_db.sql`, `npm ci --omit=dev`, migrate no-op, PM2 global + `booking-api` online + `pm2 startup` (systemd pm2-pratitis-yohanes enabled), frontend dist (build PowerShell `VITE_API_URL=/api/v1`; Git Bash merusak path).
+- Fix kode: `backend/src/docs/openapi.js` servers → `/api/v1` (test 25/25). Belum di-commit.
+- Belum: ganti password superuser postgres, HTTPS certbot, commit+push, 5 GitHub Secrets.
+- Laporan: `rules/2026-10-18-hasil-deploy-vps.html` (artifact https://claude.ai/artifact/V9ogahmDpX5h7NHabscvcB).
+- HP (Brave) ERR_CONNECTION_REFUSED: Brave paksa HTTPS, port 443 belum ada. Akar: `dua.neodns.id` SERVFAIL untuk seluruh zona pratitis.net (satu.neodns.id OK) -> certbot gagal konsisten. Solusi: pindah DNS ke Cloudflare (3 record: A @, CNAME www, A booking; DNS only) atau tiket Biznet. Artifact https://claude.ai/artifact/LZPcQzRGEJu1CQG7Em3BMB (`rules/2026-10-18-https-gagal-di-hp.html`).
+- DNS dipindah ke Cloudflare (eleanor/rocco.ns.cloudflare.com). Sertifikat Let's Encrypt aktif s/d 2027-01-15 untuk booking.pratitis.net dan pratitis.net+www (lama expired 18 Agu), redirect 301, renew dry-run OK, backup conf *.bak-2026-10-18. Record booking di Cloudflare masih Proxied (Universal SSL belum terbit) -> user perlu set DNS only. Artifact https://claude.ai/artifact/J8wjsLG6so8BC9D8tNGYXA (`rules/2026-10-18-https-cloudflare-sertifikat.html`).
+
+## STATUS AKHIR sesi 18 Oktober 2026 (dilanjutkan nanti)
+
+### Sudah selesai
+- Audit guideline: backend + frontend sesuai. Kode sudah di GitHub (commit eaad7ab, repo pratitisyohanes/final-project).
+- Aplikasi **online** di VPS 103.127.134.81: backend (PM2 `booking-api`, auto start saat reboot), PostgreSQL `booking_db` terisi data demo, frontend (hasil build) di `/var/www/booking/frontend/dist`.
+- HTTPS Let's Encrypt aktif (s/d 2027-01-15) untuk `booking.pratitis.net`, `pratitis.net`, `www.pratitis.net`, redirect 301, perpanjangan otomatis diuji OK. DNS dipindah ke Cloudflare karena `dua.neodns.id` (Biznet) SERVFAIL.
+- Password `booking_user` sudah diganti acak (hanya ada di `/var/www/booking/backend/.env` server, izin 600).
+- SSH dari VS Code: `ssh booking-vps`.
+- `.env` gaya Laravel (`DB_*`) didukung backend; `.gitignore` mengabaikan semua `.env` kecuali `.env.example`.
+
+### Belum / langkah berikutnya (urut prioritas)
+1. **Cloudflare: record `A booking` masih Proxied (oranye).** Ubah ke **DNS only** (abu-abu) agar `https://booking.pratitis.net` bisa dibuka di HP; lalu tes ulang dari HP. (Universal SSL Cloudflare belum terbit; setelah Active boleh proxy + SSL mode Full (strict).)
+2. **Ganti password superuser `postgres` di VPS** (masih password lama yang bocor): `ssh booking-vps`, `sudo -u postgres psql -c "\password postgres"`. Cek dulu apakah KM Online tes memakainya.
+3. **Commit + push** yang belum masuk git: `backend/src/docs/openapi.js`, `backend/sql/`, `rules/`, `docs/`.
+   `git add backend/src/docs/openapi.js backend/sql rules docs` lalu commit + push.
+4. **Pindahkan `docs/.env` dan `.env.local`** (kredensial kantor KM Online) keluar dari folder `fin-pro`.
+5. **Isi 5 GitHub Secrets** (VPS_HOST, VPS_USER, VPS_PORT, VPS_SSH_KEY, APP_URL) agar job "Deploy to VPS" hijau; panduan: `rules/2026-10-18-sql-dan-cara-menjalankan.html` bagian 7 dan `rules/vps/lanjutan-swap-domain-github.md` bagian 7.
+6. **Password lokal laptop**: `DB_PASSWORD` di `backend/.env` salah (28P01), backend lokal belum bisa konek.
+7. **README root** (ERD, tech stack, cara run, link deploy + Swagger) — syarat guideline.
+8. **Dokumentasi API yang bisa dibagikan** (import `/api/docs.json` ke Postman atau PDF).
+9. **PPT presentasi** sesuai format guideline.
+10. Konfirmasi ke mentor: Sanctum diganti JWT; Express + Sequelize.
+11. Cek tampilan mobile + integration test dengan database; deadline batch (guideline tertulis 22 Agustus 2026).
+12. Opsional: jadwal demo habis 1 November 2026 (tambah slot lewat admin Schedules → Bulk create); ganti password admin demo; PostgreSQL `listen_addresses='localhost'`.
+
+### Daftar artifact sesi ini
+| Topik | File lokal | Link |
+| --- | --- | --- |
+| Audit guideline + rancangan + cara run | `docs/analisa-kesesuaian-guideline.html` | https://claude.ai/artifact/F2bgxVuFKj3Qvtywy4eWV3 |
+| Analisa format .env | `docs/analisa-format-env.html` | https://claude.ai/artifact/DaxHm4uxhCAvLJFWuuH4UR |
+| Deploy backend manual ke VPS | `rules/vps/deploy-backend-vps.html` | https://claude.ai/artifact/1cfhBf2ckZbREKkSSuyKoT |
+| Push ke GitHub | `docs/panduan-push-github.html` | https://claude.ai/artifact/SQihe2K8NMRyW475pzRRGw |
+| SQL dan cara menjalankan | `rules/2026-10-18-sql-dan-cara-menjalankan.html` | https://claude.ai/artifact/8yjvwebM8teYVpC5kZyipu |
+| Kirim ke VPS dengan WinSCP | `rules/2026-10-18-winscp-kirim-ke-vps.html` | https://claude.ai/artifact/YahcapTEogYFx9FXPh5AKW |
+| Daftar file ke VPS | `rules/2026-10-18-daftar-file-ke-vps.html` | https://claude.ai/artifact/UgYqGgMX3N9yRBNdvSTFmP |
+| Hasil deploy VPS | `rules/2026-10-18-hasil-deploy-vps.html` | https://claude.ai/artifact/V9ogahmDpX5h7NHabscvcB |
+| HTTPS gagal di HP | `rules/2026-10-18-https-gagal-di-hp.html` | https://claude.ai/artifact/LZPcQzRGEJu1CQG7Em3BMB |
+| HTTPS, sertifikat, Cloudflare | `rules/2026-10-18-https-cloudflare-sertifikat.html` | https://claude.ai/artifact/J8wjsLG6so8BC9D8tNGYXA |
+
+### Catatan teknis penting
+- Build frontend produksi harus dari **PowerShell** (`$env:VITE_API_URL="/api/v1"`), bukan Git Bash (MSYS mengubah `/api/v1` menjadi path Windows).
+- Seeder menolak `NODE_ENV=production`; di VPS pakai `NODE_ENV=development npx sequelize-cli db:seed:all` atau import `backend/sql/booking_db.sql`.
+- Jangan kembalikan nameserver ke NeoDNS selama `dua.neodns.id` belum diperbaiki Biznet.
+- Akun demo: `admin@booking.com / Admin12345`, `budi@example.com` dan `siti@example.com / User12345`.
+
+---
+
+## STATUS AKHIR sesi 22 Oktober 2026 (dilanjutkan nanti)
+
+Sesi ini memperluas final project menjadi **dua project yang terintegrasi** di folder `final-project/`:
+- `fin-pro/` = Project 1, **Sistem Booking** (tema guideline 2), sekarang bertema **jasa peternakan ayam petelur**.
+- `pos-pro/` = Project 2, **POS "KandangMart"** (tema guideline 1), menjual kandang, peralatan, pakan, dan obat ayam petelur. Melanjutkan mini project penjualan kandang ayam petelur.
+- POS diposisikan sebagai **fitur tambahan Microservice** (guideline), bukan pengganti. Project yang dinilai tetap booking.
+
+### Urutan permintaan dan hasil
+1. **Analisa struktur data, MVC, arsitektur + guideline** → rancangan integrasi POS dengan booking (`fin-pro/rules/2026-10-22-perancangan-integrasi-pos-booking.html`).
+2. **Tema booking diganti** dari salon/spa ke jasa peternakan ayam petelur: seeder (5 kategori, 7 layanan, 13 booking), contoh Swagger, teks HomePage, judul tab, panduan `rules/panduan-menjalankan-dan-arsitektur.*`.
+3. **Aturan baru dari user: setiap perubahan dicatat** di `fin-pro/rules/log-perubahan.html` (artifact) dan disimpan di rules. Sudah ada entri #1 sampai #5.
+4. **Panduan cara menjalankan** tema baru (`rules/2026-10-22-cara-menjalankan.html`). Ditemukan dan diperbaiki: perintah seed Docker di panduan lama selalu gagal, sekarang `docker compose exec -e NODE_ENV=development api npx sequelize-cli db:seed:all`.
+5. **POS dibuat sebagai project terpisah** di `final-project/pos-pro` dengan backend + frontend sendiri. Rancangan arsitektur: `pos-pro/rules/2026-10-22-perancangan-arsitektur-pos.html`.
+6. **Rancangan diterapkan** (kode bahasa Inggris, komentar bahasa Inggris maks 1 baris). Penjelasan per file: `pos-pro/rules/2026-10-22-implementasi-pos-dan-integrasi.html`.
+
+### Arsitektur yang sudah dibangun
+- Stack POS sama dengan fin-pro: React 18 + Vite 6 + Tailwind 3 + TanStack Query + Zustand; Node 20 + Express 4 + Sequelize 6 + Zod; PostgreSQL 17 database `pos_db`.
+- Port lokal: booking API 5000 / web 5173; POS API 5001 / web 5174. Produksi rencana: `pos.pratitis.net`.
+- **Login hanya di booking-api.** Frontend POS memanggil `/auth/*` (Vite proxy / Nginx → booking-api `/api/v1/auth/*`). pos-api hanya memverifikasi JWT dengan `JWT_ACCESS_SECRET` yang sama.
+- **Integrasi server-ke-server:** pos-api → booking-api `/api/v1/internal/*` dengan header `X-Internal-Key` (`INTERNAL_API_KEY` sama di kedua `.env`). Endpoint: lookup booking, settle booking (idempotent dengan nomor invoice POS), ringkasan laporan.
+- Checkout kasir bisa memuat produk + 1 booking CONFIRMED/COMPLETED yang UNPAID; settle ke booking-api dipanggil terakhir di dalam transaksi DB, gagal = rollback.
+- Struk produk kandang punya link "Book installation" ke layanan booking (`install_service_id`). Navbar booking punya link "Shop supplies" ke POS (`VITE_POS_URL`).
+- Id akun demo sekarang tetap: admin `0a000000-0000-4000-8000-000000000001`, budi `...0002`, siti `...0003`.
+
+### Perubahan fin-pro (belum di-commit)
+`backend/src/utils/jwt.js` (name di token), `config/env.js` + `.env.example` (`INTERNAL_API_KEY` opsional), `middlewares/authenticateService.js` (baru), `modules/internal/*` (baru), `app.js` (router internal sebelum rate limiter), `models/payment.js` + migrasi `20261022000001-add-external-ref-to-payments.js`, seeder (id tetap + tema peternakan), `docs/openapi.js`, tests (31 total), `deploy/nginx/booking.pratitis.net.conf` (blokir `/api/v1/internal/`), `frontend/src/components/Navbar.jsx`, `frontend/src/pages/public/HomePage.jsx`, `frontend/index.html`, `frontend/.env.example`, `.github/workflows/deploy.yml`.
+File `.env` lokal ikut diubah: `fin-pro/backend/.env` (+`INTERNAL_API_KEY`), `fin-pro/frontend/.env` (+`VITE_POS_URL`), dibuat `pos-pro/backend/.env` dan `pos-pro/frontend/.env`.
+
+### Verifikasi
+- Test: fin-pro 31/31, pos-pro 21/21. Build frontend pos-pro dan fin-pro sukses.
+- PostgreSQL lokal menolak password `.env`, jadi diuji dengan PostgreSQL 17 sementara (`embedded-postgres` di scratchpad, port 5499, sudah dimatikan): migrasi + seeder kedua project OK, **42/42 cek end-to-end** OK.
+- Bug ditemukan dan diperbaiki: pencarian daftar transaksi admin POS hilang karena `compact()` membuang key `Op.or`.
+
+### Belum / langkah berikutnya (urut prioritas)
+1. **Perbaiki `DB_PASSWORD`** di `fin-pro/backend/.env` (dan salinannya di `pos-pro/backend/.env`), lalu: `createdb pos_db`; di kedua backend `npm run db:migrate` + `npm run db:seed`; jalankan 4 terminal (urutan di bagian 9 dokumen implementasi).
+2. **Coba alur integrasi di browser:** konfirmasi booking PENDING di booking admin → POS `/admin/cashier` → masukkan kode booking + kandang → Complete sale → cek booking jadi PAID.
+3. **Buat ulang `fin-pro/backend/sql/schema.sql` dan `booking_db.sql`** (masih data salon dan belum ada kolom `external_ref`). Perintah ada di `rules/2026-10-22-cara-menjalankan.html` bagian 8.
+4. **Git:** commit perubahan fin-pro; `git init` + repo GitHub baru untuk `pos-pro`.
+5. **Deploy POS ke VPS:** record `pos` di Cloudflare, `pos_db` + `pos_user`, `/var/www/pos`, `.env` server (JWT_ACCESS_SECRET sama, `INTERNAL_API_KEY` baru di kedua server), Nginx `pos-pro/deploy/nginx/pos.pratitis.net.conf`, PM2 `pos-api`, GitHub Secrets. Cek RAM (`free -m`) dulu.
+6. Postman collection POS; README root final-project yang menjelaskan dua project.
+7. Konfirmasi ke mentor: project kedua sebagai microservice, Express + JWT, deadline batch.
+8. Item lama dari sesi 18 Oktober yang belum selesai tetap berlaku (Cloudflare DNS only, password `postgres` VPS, GitHub Secrets, PPT).
+
+### Daftar artifact sesi ini
+| Topik | File lokal | Link |
+| --- | --- | --- |
+| Rancangan integrasi POS + booking (revisi 3) | `fin-pro/rules/2026-10-22-perancangan-integrasi-pos-booking.html` | https://claude.ai/artifact/VWzpKBzXQnenFd72p7is6F |
+| Log perubahan (#1-#5) | `fin-pro/rules/log-perubahan.html` | https://claude.ai/artifact/SRip2YkMbTh4V4HmobPMTq |
+| Cara menjalankan (tema peternakan) | `fin-pro/rules/2026-10-22-cara-menjalankan.html` | https://claude.ai/artifact/LAbs579YSUuyWgapnGMBQb |
+| Arsitektur POS (pos-pro) | `pos-pro/rules/2026-10-22-perancangan-arsitektur-pos.html` | https://claude.ai/artifact/FEHKN4bxEEoWjStuy9HXFm |
+| Implementasi POS + integrasi, per file | `pos-pro/rules/2026-10-22-implementasi-pos-dan-integrasi.html` | https://claude.ai/artifact/SCX2sKmkX4ERLdbwutxUK7 |
+
+### Preferensi kerja yang ditambahkan sesi ini
+- Setiap perubahan dicatat di `fin-pro/rules/log-perubahan.html` lalu artifact-nya dipublish ulang.
+- Dokumen/artifact disimpan di folder `rules/` project terkait, nama file diawali tanggal (`YYYY-MM-DD-...`), berbahasa Indonesia.
+- Kode, nama, dan pesan API berbahasa Inggris; komentar bahasa Inggris maksimal satu baris.

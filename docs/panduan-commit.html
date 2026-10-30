@@ -1,0 +1,221 @@
+<title>Panduan Commit Fin-Pro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one reading column with a commit-graph rail running down the steps */
+  :root {
+    --bg: #f5f7f8; --surface: #ffffff; --fg: #17242b; --muted: #55666f; --line: #d5dee2;
+    --accent: #0b6e6e; --accent-soft: #dcefee; --code-bg: #14212a; --code-fg: #dcebea;
+    --warn: #8a5300; --warn-soft: #fbf0db; --danger: #a12a2a; --danger-soft: #fae6e4;
+    --ok: #1f7a4a; --ok-soft: #dff2e6;
+    --sans: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10191f; --surface: #17232a; --fg: #e4edf0; --muted: #9db0b9; --line: #2c3c45;
+      --accent: #58c7c0; --accent-soft: #173a3b; --code-bg: #0b1317; --code-fg: #dcebea;
+      --warn: #efbe6c; --warn-soft: #39290f; --danger: #f29a92; --danger-soft: #41201e;
+      --ok: #7ad6a2; --ok-soft: #173526; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10191f; --surface: #17232a; --fg: #e4edf0; --muted: #9db0b9; --line: #2c3c45;
+    --accent: #58c7c0; --accent-soft: #173a3b; --code-bg: #0b1317; --code-fg: #dcebea;
+    --warn: #efbe6c; --warn-soft: #39290f; --danger: #f29a92; --danger-soft: #41201e;
+    --ok: #7ad6a2; --ok-soft: #173526; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg); font: 400 16px/1.65 var(--sans);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 64px;
+  }
+  main { max-width: 760px; margin: 0 auto; display: grid; gap: 40px; }
+  main > * { min-width: 0; }
+  h1 { font-size: 2.1rem; line-height: 1.2; font-weight: 700; margin: 0 0 12px; text-wrap: balance; }
+  h2 { font-size: 1.35rem; line-height: 1.3; font-weight: 700; margin: 0 0 12px; text-wrap: balance; }
+  h3 { font-size: 1.05rem; line-height: 1.35; font-weight: 600; margin: 0 0 6px; text-wrap: balance; }
+  p { margin: 0 0 10px; }
+  p:last-child { margin-bottom: 0; }
+  .lead { color: var(--muted); font-size: 1.05rem; max-width: 62ch; }
+  code { font: 500 .88em var(--mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+  .fact { background: var(--ok-soft); padding: 12px 14px; border-radius: 8px; min-width: 0; }
+  .fact strong { display: block; color: var(--ok); font-weight: 600; }
+  .fact span { font-size: .92rem; }
+
+  .note { padding: 14px 16px; border-radius: 8px; background: var(--warn-soft); }
+  .note.danger { background: var(--danger-soft); }
+  .note strong:first-child { display: block; margin-bottom: 4px; color: var(--warn); }
+  .note.danger strong:first-child { color: var(--danger); }
+
+  ol.graph { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  ol.graph > li { position: relative; padding: 0 0 30px 46px; counter-increment: step; min-width: 0; }
+  ol.graph > li::before {
+    content: counter(step); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%;
+    display: grid; place-items: center; background: var(--surface); border: 2px solid var(--line);
+    color: var(--muted); font: 500 .85rem var(--mono); z-index: 1;
+  }
+  ol.graph > li.commit::before { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  ol.graph > li::after { content: ""; position: absolute; left: 14px; top: 30px; bottom: 0; width: 2px; background: var(--line); }
+  ol.graph > li:last-child { padding-bottom: 0; }
+  ol.graph > li:last-child::after { display: none; }
+
+  .cmd { position: relative; margin: 10px 0; }
+  pre {
+    margin: 0; padding: 12px 74px 12px 14px; background: var(--code-bg); color: var(--code-fg);
+    border-radius: 8px; overflow-x: auto; font: 400 .84rem/1.6 var(--mono);
+  }
+  .copy {
+    position: absolute; top: 7px; right: 7px; padding: 3px 9px; border: 0; border-radius: 5px; cursor: pointer;
+    background: var(--accent); color: var(--bg); font: 500 .76rem var(--sans);
+  }
+  .copy:focus-visible, a:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .94rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); }
+  section ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px; }
+
+  @media (max-width: 440px) { h1 { font-size: 1.7rem; } ol.graph > li { padding-left: 40px; } }
+</style>
+
+<main>
+  <header>
+    <h1>Panduan commit fin-pro</h1>
+    <p class="lead">Semua perubahan SSO, MFA, integrasi POS dan dump database dibagi menjadi empat commit di branch <code>main</code>. Commit hanya tersimpan di laptop. Yang memengaruhi server adalah <code>git push</code> di langkah terakhir.</p>
+  </header>
+
+  <section aria-label="Hasil pengecekan">
+    <div class="facts">
+      <div class="fact"><strong>Tes backend lolos</strong><span>65 tes di 13 suite</span></div>
+      <div class="fact"><strong>Build frontend berhasil</strong><span><code>npm run build</code> tanpa error</span></div>
+      <div class="fact"><strong>Rahasia tidak ikut</strong><span>Semua <code>.env</code> asli diabaikan Git</span></div>
+    </div>
+  </section>
+
+  <section class="note danger">
+    <strong>Selesaikan ini sebelum commit 4</strong>
+    <p><code>docs/log-percakapan.md</code> baris 192 menulis bahwa password superuser <code>postgres</code> di VPS masih password lama yang bocor. Kalau repo ini publik, baris itu memberi tahu semua orang bahwa server kamu rentan.</p>
+    <p>Ganti dulu password-nya lewat perintah di bawah, atau hapus baris 165 dan 192 dari log sebelum commit.</p>
+    <div class="cmd"><pre><code style="all:unset">ssh booking-vps
+sudo -u postgres psql -c "\password postgres"</code></pre></div>
+  </section>
+
+  <section>
+    <h2>Langkah commit</h2>
+    <p>Jalankan di terminal VS Code, dari folder <code>fin-pro</code>. Lingkaran berwarna menandai langkah yang membuat commit.</p>
+    <ol class="graph">
+      <li>
+        <h3>Lihat daftar perubahan</h3>
+        <p>Pastikan kamu ada di branch <code>main</code> dan daftar filenya masuk akal.</p>
+        <div class="cmd"><pre>git branch --show-current
+git status --short</pre></div>
+      </li>
+      <li>
+        <h3>Pastikan file rahasia diabaikan</h3>
+        <p>Perintah ini harus menampilkan lima baris, satu untuk tiap file. Kalau ada yang tidak muncul, berhenti dulu dan jangan lanjut.</p>
+        <div class="cmd"><pre>git check-ignore -v .env.local docs/.env backend/.env backend/.env.backup frontend/.env</pre></div>
+      </li>
+      <li class="commit">
+        <h3>Commit 1: backend</h3>
+        <p><code>git add</code> memilih file yang masuk commit. <code>git diff --cached --stat</code> menampilkan pilihan itu supaya bisa dicek. <code>git commit</code> menyimpannya.</p>
+        <div class="cmd"><pre>git add backend/src backend/tests backend/scripts backend/package.json backend/package-lock.json backend/.env.example
+git diff --cached --stat
+git commit -m "feat(backend): add SSO login, MFA and internal API"</pre></div>
+      </li>
+      <li class="commit">
+        <h3>Commit 2: frontend</h3>
+        <p>Git otomatis melewati <code>frontend/.env</code> dan <code>frontend/dist/</code> karena keduanya ada di <code>.gitignore</code>.</p>
+        <div class="cmd"><pre>git add frontend
+git diff --cached --stat
+git commit -m "feat(frontend): add SSO login, MFA step and POS link"</pre></div>
+      </li>
+      <li class="commit">
+        <h3>Commit 3: deploy</h3>
+        <p>Isinya blokir route internal di Nginx dan <code>VITE_POS_URL</code> di workflow. Kalau SSO mau aktif di production, tambahkan dulu <code>VITE_SSO_URL</code> dan <code>VITE_SSO_CLIENT_ID</code> ke langkah build di <code>deploy.yml</code>. Tanpa keduanya, production tetap memakai form email dan password.</p>
+        <div class="cmd"><pre>git add .github deploy
+git diff --cached --stat
+git commit -m "chore(deploy): block internal routes and set POS url"</pre></div>
+      </li>
+      <li class="commit">
+        <h3>Commit 4: database dan dokumentasi</h3>
+        <p>Kerjakan setelah peringatan di atas selesai. <code>booking_db.sql</code> hanya berisi data demo, dan password demonya memang sudah ada di repo.</p>
+        <div class="cmd"><pre>git add backend/sql docs
+git diff --cached --stat
+git commit -m "docs: add database dump and update project log"</pre></div>
+      </li>
+      <li>
+        <h3>Periksa hasilnya</h3>
+        <p><code>git status</code> harus bersih, dan <code>git log</code> menampilkan empat commit baru di atas <code>2944cb2</code>.</p>
+        <div class="cmd"><pre>git status
+git log --oneline -5</pre></div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Sebelum menjalankan git push</h2>
+    <p>Push ke <code>main</code> langsung menjalankan <code>deploy.yml</code>: tes, build, upload ke VPS, migrasi database production, lalu restart backend. Dua migrasi baru akan mengubah tabel <code>payments</code> dan <code>users</code> di server.</p>
+    <ul>
+      <li><strong>GitHub Secrets.</strong> Log masih mencatat lima secret belum diisi: <code>VPS_HOST</code>, <code>VPS_USER</code>, <code>VPS_PORT</code>, <code>VPS_SSH_KEY</code>, <code>APP_URL</code>. Cek di GitHub, Settings, Secrets and variables, Actions. Kalau belum ada, job deploy gagal dan aplikasi di server tetap versi lama.</li>
+      <li><strong>Backup database.</strong> Buat backup dulu karena migrasi langsung mengenai data production.</li>
+      <li><strong><code>.env</code> di VPS.</strong> Tidak ada variabel wajib baru, jadi backend tetap menyala dalam mode login lokal. Isi <code>INTERNAL_API_KEY</code> kalau integrasi POS dipakai, karena tanpa itu route internal menjawab 503.</li>
+    </ul>
+    <div class="cmd"><pre>git push origin main</pre></div>
+    <p>Pantau hasilnya di tab Actions pada repo GitHub.</p>
+  </section>
+
+  <section class="note">
+    <strong>Nginx tidak ikut ter-deploy otomatis</strong>
+    <p>Workflow hanya mengunggah folder backend dan frontend. Salin isi <code>deploy/nginx/booking.pratitis.net.conf</code> ke konfigurasi Nginx di VPS, lalu jalankan perintah berikut. Sebelum itu, <code>/api/v1/internal/</code> masih bisa dijangkau dari internet, meski tetap dilindungi <code>X-Internal-Key</code>.</p>
+    <div class="cmd"><pre>sudo nginx -t
+sudo systemctl reload nginx</pre></div>
+  </section>
+
+  <section>
+    <h2>Kalau ada yang salah</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Masalah</th><th>Perintah</th></tr></thead>
+        <tbody>
+          <tr><td>File salah masuk <code>git add</code></td><td><code>git restore --staged nama-file</code></td></tr>
+          <tr><td>Pesan commit terakhir salah, belum push</td><td><code>git commit --amend -m "pesan baru"</code></td></tr>
+          <tr><td>Batalkan commit terakhir, perubahan tetap ada, belum push</td><td><code>git reset --soft HEAD~1</code></td></tr>
+          <tr><td>Muncul peringatan <code>LF will be replaced by CRLF</code></td><td>Aman, abaikan saja</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+  // Add a copy button to every command block
+  document.querySelectorAll('.cmd').forEach((block) => {
+    const button = document.createElement('button');
+    button.className = 'copy';
+    button.type = 'button';
+    button.textContent = 'Salin';
+    button.addEventListener('click', async () => {
+      const text = block.querySelector('pre').innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = 'Tersalin';
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents(block.querySelector('pre'));
+        const selection = getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        button.textContent = 'Tekan Ctrl+C';
+      }
+      setTimeout(() => { button.textContent = 'Salin'; }, 1800);
+    });
+    block.append(button);
+  });
+</script>
