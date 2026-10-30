@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
+import { isSsoEnabled, refreshWithSso } from '../utils/oidc';
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
@@ -26,11 +27,12 @@ export const refreshSession = () => {
   if (!refreshToken) return Promise.reject(new Error('No refresh token'));
 
   if (!refreshPromise) {
-    refreshPromise = refreshClient
-      .post('/auth/refresh', { refreshToken })
-      .then((response) => {
-        setSession(getData(response));
-        return getData(response).accessToken;
+    // With single sign-on the token pair comes from KandangID, otherwise from this API
+    const request = isSsoEnabled ? refreshWithSso(refreshToken) : refreshClient.post('/auth/refresh', { refreshToken }).then(getData);
+    refreshPromise = request
+      .then((session) => {
+        setSession(session);
+        return session.accessToken;
       })
       .finally(() => {
         refreshPromise = null;
@@ -39,7 +41,8 @@ export const refreshSession = () => {
   return refreshPromise;
 };
 
-const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/refresh'];
+// A 401 on these paths means wrong credentials or an expired MFA ticket, never an expired access token
+const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/mfa'];
 
 api.interceptors.response.use(
   (response) => response,

@@ -8,6 +8,9 @@ import Button from './ui/Button';
 const linkClass = ({ isActive }) =>
   `rounded-lg px-3 py-2 text-sm font-medium ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:text-slate-900'}`;
 
+// Link to the separate POS app; hidden when VITE_POS_URL is not set
+const POS_URL = import.meta.env.VITE_POS_URL;
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
@@ -31,6 +34,11 @@ export default function Navbar() {
               {link.label}
             </NavLink>
           ))}
+          {POS_URL && (
+            <a href={POS_URL} className={linkClass({ isActive: false })}>
+              Shop supplies
+            </a>
+          )}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -73,6 +81,11 @@ export default function Navbar() {
               {link.label}
             </NavLink>
           ))}
+          {POS_URL && (
+            <a href={POS_URL} className={`block ${linkClass({ isActive: false })}`}>
+              Shop supplies
+            </a>
+          )}
           {user ? (
             <button type="button" onClick={logout} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50">
               Log out

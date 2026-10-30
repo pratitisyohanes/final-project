@@ -5,9 +5,9 @@ import { PageLoader } from '../../components/ui/Spinner';
 import { EmptyState, ErrorState } from '../../components/ui/States';
 
 const STEPS = [
-  { title: 'Choose a service', text: 'Browse the catalog and compare price and duration.' },
-  { title: 'Pick a time slot', text: 'Only slots that still have seats are shown.' },
-  { title: 'Track your booking', text: 'Follow the status from pending to completed.' },
+  { title: 'Choose a service', text: 'Compare site surveys, cage installation, repairs and flock health visits.' },
+  { title: 'Pick a visit slot', text: 'Only slots our field team can still take are shown.' },
+  { title: 'Track your booking', text: 'Follow the job from pending to completed.' },
 ];
 
 export default function HomePage() {
@@ -17,9 +17,9 @@ export default function HomePage() {
   return (
     <div className="space-y-14">
       <section className="overflow-hidden rounded-2xl bg-brand-900 px-6 py-12 text-white sm:px-10 sm:py-16">
-        <p className="text-sm font-semibold uppercase tracking-wider text-brand-200">Online service booking</p>
-        <h1 className="mt-3 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">Book the service you need at a time that suits you.</h1>
-        <p className="mt-4 max-w-xl text-brand-100">See real-time availability, reserve a slot in a few clicks, and keep every booking in one place.</p>
+        <p className="text-sm font-semibold uppercase tracking-wider text-brand-200">Layer farm services</p>
+        <h1 className="mt-3 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">Book cage installation and farm visits at a time that suits you.</h1>
+        <p className="mt-4 max-w-xl text-brand-100">See when our field team is free, reserve a visit in a few clicks, and keep every job for your layer farm in one place.</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link to="/services" className="rounded-lg bg-white px-5 py-2.5 font-semibold text-brand-900 hover:bg-brand-50">
             Browse services

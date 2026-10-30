@@ -9,6 +9,7 @@ import ServicesPage from '../pages/public/ServicesPage';
 import ServiceDetailPage from '../pages/public/ServiceDetailPage';
 import LoginPage from '../pages/public/LoginPage';
 import RegisterPage from '../pages/public/RegisterPage';
+import AuthCallbackPage from '../pages/public/AuthCallbackPage';
 import { ForbiddenPage, NotFoundPage } from '../pages/public/StatusPages';
 import MyBookingsPage from '../pages/user/MyBookingsPage';
 import BookingDetailPage from '../pages/user/BookingDetailPage';
@@ -38,6 +39,8 @@ export default function AppRoutes() {
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
           </Route>
+          {/* Outside GuestRoute: the session is created on this page */}
+          <Route path="login/callback" element={<AuthCallbackPage />} />
 
           <Route element={<ProtectedRoute roles={['USER']} />}>
             <Route path="my-bookings" element={<MyBookingsPage />} />

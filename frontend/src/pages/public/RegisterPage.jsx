@@ -7,11 +7,18 @@ import { useApiMutation } from '../../hooks/useApiMutation';
 import { useAuthStore } from '../../store/authStore';
 import { registerSchema } from '../../schemas/auth.schema';
 import { applyFieldErrors } from '../../utils/errors';
+import { isSsoEnabled } from '../../utils/oidc';
 import AuthCard from '../../components/AuthCard';
+import SsoLogin from '../../components/SsoLogin';
 import Button from '../../components/ui/Button';
 import { Input } from '../../components/ui/FormField';
 
+// With single sign-on the account is created on the KandangID page (it becomes an LDAP entry)
 export default function RegisterPage() {
+  return isSsoEnabled ? <SsoLogin mode="register" subtitle="Book site surveys, cage installation and repairs." /> : <PasswordRegisterPage />;
+}
+
+function PasswordRegisterPage() {
   const navigate = useNavigate();
   const setSession = useAuthStore((state) => state.setSession);
 
