@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <pattern id="mesh" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M30 0H0V30" fill="none" stroke="#16857f" stroke-width="2" opacity="0.7"/>
+    </pattern>
+  </defs>
+  <rect x="0" y="500" width="1200" height="100" fill="#082a28"/>
+  <g>
+    <rect x="620" y="400" width="580" height="100" fill="url(#mesh)"/>
+    <rect x="620" y="400" width="580" height="100" fill="none" stroke="#16857f" stroke-width="4" opacity="0.8"/>
+    <rect x="620" y="440" width="580" height="4" fill="#16857f" opacity="0.8"/>
+    <rect x="620" y="470" width="580" height="4" fill="#16857f" opacity="0.8"/>
+  </g>
+  <g fill="#082a28">
+    <rect x="620" y="400" width="8" height="200"/>
+    <rect x="800" y="400" width="8" height="200"/>
+    <rect x="980" y="400" width="8" height="200"/>
+    <rect x="1160" y="400" width="8" height="200"/>
+  </g>
+</svg>

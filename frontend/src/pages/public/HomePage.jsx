@@ -1,8 +1,12 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCategories, useServices } from '../../hooks/queries';
+import ParallaxHero from '../../components/ParallaxHero';
+import Reveal from '../../components/Reveal';
 import ServiceCard from '../../components/ServiceCard';
 import { PageLoader } from '../../components/ui/Spinner';
 import { EmptyState, ErrorState } from '../../components/ui/States';
+import { ScrollTrigger } from '../../lib/gsap';
 
 const STEPS = [
   { title: 'Choose a service', text: 'Compare site surveys, cage installation, repairs and flock health visits.' },
@@ -13,6 +17,11 @@ const STEPS = [
 export default function HomePage() {
   const services = useServices({ limit: 6 });
   const categories = useCategories();
+
+  // Loaded data changes the page height, so scroll triggers must be measured again
+  useEffect(() => {
+    ScrollTrigger.refresh();
+  }, [services.data, categories.data]);
 
   return (
     <div className="space-y-14">
@@ -32,9 +41,10 @@ export default function HomePage() {
         </div>
         <img src="/hero-farm.svg" alt="Layer farm with battery cages and hens" className="hidden w-full max-w-lg justify-self-end lg:block" />
       </section>
+      <ParallaxHero />
 
       {categories.data?.items?.length > 0 && (
-        <section className="space-y-4">
+        <Reveal className="space-y-4">
           <h2 className="text-xl font-bold text-slate-900">Categories</h2>
           <div className="flex flex-wrap gap-2">
             {categories.data.items.map((category) => (
@@ -47,10 +57,10 @@ export default function HomePage() {
               </Link>
             ))}
           </div>
-        </section>
+        </Reveal>
       )}
 
-      <section className="space-y-4">
+      <Reveal className="space-y-4">
         <div className="flex items-end justify-between">
           <h2 className="text-xl font-bold text-slate-900">Latest services</h2>
           <Link to="/services" className="text-sm font-medium text-brand-700 hover:underline">
@@ -67,9 +77,9 @@ export default function HomePage() {
             ))}
           </div>
         )}
-      </section>
+      </Reveal>
 
-      <section className="space-y-4">
+      <Reveal className="space-y-4">
         <h2 className="text-xl font-bold text-slate-900">How it works</h2>
         <ol className="grid gap-4 sm:grid-cols-3">
           {STEPS.map((step, index) => (
@@ -80,7 +90,7 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
-      </section>
+      </Reveal>
     </div>
   );
 }
