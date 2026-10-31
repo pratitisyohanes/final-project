@@ -1,8 +1,12 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCategories, useServices } from '../../hooks/queries';
+import ParallaxHero from '../../components/ParallaxHero';
+import Reveal from '../../components/Reveal';
 import ServiceCard from '../../components/ServiceCard';
 import { PageLoader } from '../../components/ui/Spinner';
 import { EmptyState, ErrorState } from '../../components/ui/States';
+import { ScrollTrigger } from '../../lib/gsap';
 
 const STEPS = [
   { title: 'Choose a service', text: 'Compare site surveys, cage installation, repairs and flock health visits.' },
@@ -14,24 +18,17 @@ export default function HomePage() {
   const services = useServices({ limit: 6 });
   const categories = useCategories();
 
+  // Loaded data changes the page height, so scroll triggers must be measured again
+  useEffect(() => {
+    ScrollTrigger.refresh();
+  }, [services.data, categories.data]);
+
   return (
     <div className="space-y-14">
-      <section className="overflow-hidden rounded-2xl bg-brand-900 px-6 py-12 text-white sm:px-10 sm:py-16">
-        <p className="text-sm font-semibold uppercase tracking-wider text-brand-200">Layer farm services</p>
-        <h1 className="mt-3 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">Book cage installation and farm visits at a time that suits you.</h1>
-        <p className="mt-4 max-w-xl text-brand-100">See when our field team is free, reserve a visit in a few clicks, and keep every job for your layer farm in one place.</p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link to="/services" className="rounded-lg bg-white px-5 py-2.5 font-semibold text-brand-900 hover:bg-brand-50">
-            Browse services
-          </Link>
-          <Link to="/register" className="rounded-lg border border-white/30 px-5 py-2.5 font-semibold text-white hover:bg-white/10">
-            Create an account
-          </Link>
-        </div>
-      </section>
+      <ParallaxHero />
 
       {categories.data?.items?.length > 0 && (
-        <section className="space-y-4">
+        <Reveal className="space-y-4">
           <h2 className="text-xl font-bold text-slate-900">Categories</h2>
           <div className="flex flex-wrap gap-2">
             {categories.data.items.map((category) => (
@@ -44,10 +41,10 @@ export default function HomePage() {
               </Link>
             ))}
           </div>
-        </section>
+        </Reveal>
       )}
 
-      <section className="space-y-4">
+      <Reveal className="space-y-4">
         <div className="flex items-end justify-between">
           <h2 className="text-xl font-bold text-slate-900">Latest services</h2>
           <Link to="/services" className="text-sm font-medium text-brand-700 hover:underline">
@@ -64,9 +61,9 @@ export default function HomePage() {
             ))}
           </div>
         )}
-      </section>
+      </Reveal>
 
-      <section className="space-y-4">
+      <Reveal className="space-y-4">
         <h2 className="text-xl font-bold text-slate-900">How it works</h2>
         <ol className="grid gap-4 sm:grid-cols-3">
           {STEPS.map((step, index) => (
@@ -77,7 +74,7 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
-      </section>
+      </Reveal>
     </div>
   );
 }
