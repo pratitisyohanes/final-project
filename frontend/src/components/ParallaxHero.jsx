@@ -58,6 +58,13 @@ export default function ParallaxHero() {
       {/* Keeps the headline readable over the artwork */}
       <div className="absolute inset-0 bg-gradient-to-r from-brand-900/85 via-brand-900/50 to-transparent" />
 
+      <img
+        data-intro
+        src="/hero-farm.svg"
+        alt="Layer farm with battery cages and hens"
+        className="pointer-events-none absolute bottom-0 right-6 hidden h-[90%] w-auto max-w-[45%] object-contain lg:block"
+      />
+
       <div className="relative px-6 py-14 sm:px-10 sm:py-24">
         <p data-intro className="text-sm font-semibold uppercase tracking-wider text-brand-200">
           Layer farm services
