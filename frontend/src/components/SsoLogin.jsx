@@ -1,47 +1,57 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { startLogin } from '../utils/oidc';
+import { allowAutoStart, startLogin } from '../utils/oidc';
 import AuthCard from './AuthCard';
 import Button from './ui/Button';
+import { PageLoader } from './ui/Spinner';
 
-// Login and sign-up when single sign-on is on: both continue on the KandangID page and come back to /login/callback
-export default function SsoLogin({ mode = 'login', subtitle }) {
+// Values of ?prompt= that KandangID understands: "login" asks for the password again (switch account), "create" opens sign-up
+const PROMPTS = ['login', 'create'];
+
+const MESSAGES = {
+  start: 'The ELEFEZ FARM login page could not be opened. Please try again.',
+  loop: 'Login keeps returning to this page. Please try again, and contact the farm if it continues.',
+};
+
+// Login and sign-up when single sign-on is on. The browser goes straight to the KandangID page and comes back to /login/callback;
+// with an active KandangID session it comes back at once, without typing a password again.
+// The card below only shows when that redirect could not start.
+export default function SsoLogin({ mode = 'login' }) {
   const location = useLocation();
-  const [isLeaving, setIsLeaving] = useState(false);
   const isRegister = mode === 'register';
   // The page that asked for login; empty means "go to the home page for my role"
   const returnTo = location.state?.from?.pathname || null;
+  // /login?prompt=login lets someone switch account even though a KandangID session is still active
+  const requested = new URLSearchParams(location.search).get('prompt');
+  const prompt = isRegister ? 'create' : PROMPTS.includes(requested) ? requested : undefined;
 
-  const go = (prompt) => {
-    setIsLeaving(true);
-    startLogin({ returnTo, prompt }).catch(() => {
-      setIsLeaving(false);
-      toast.error('Could not open the ELEFEZ FARM login page');
-    });
+  const [problem, setProblem] = useState(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    // StrictMode runs effects twice in development, and a second start would overwrite the saved PKCE verifier
+    if (started.current) return;
+    started.current = true;
+
+    if (!allowAutoStart()) {
+      setProblem(MESSAGES.loop);
+      return;
+    }
+    startLogin({ returnTo, prompt }).catch(() => setProblem(MESSAGES.start));
+  }, [returnTo, prompt]);
+
+  const retry = () => {
+    setProblem(null);
+    startLogin({ returnTo, prompt }).catch(() => setProblem(MESSAGES.start));
   };
 
+  if (!problem) return <PageLoader label="Opening the ELEFEZ FARM login page..." />;
+
   return (
-    <AuthCard
-      title={isRegister ? 'Create account' : 'Log in'}
-      subtitle={subtitle}
-      footer={
-        <>
-          {isRegister ? 'Already have an account? ' : 'No account yet? '}
-          <button type="button" onClick={() => go(isRegister ? undefined : 'create')} className="font-medium text-brand-700 hover:underline">
-            {isRegister ? 'Log in' : 'Create one'}
-          </button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        <p className="text-sm text-slate-600">
-          ELEFEZ FARM Booking and POS share one account. You continue on the ELEFEZ FARM login page and come back here; if you are already logged in there, it takes a second.
-        </p>
-        <Button className="w-full" size="lg" isLoading={isLeaving} onClick={() => go(isRegister ? 'create' : undefined)}>
-          {isRegister ? 'Create account with ELEFEZ FARM' : 'Log in with ELEFEZ FARM'}
-        </Button>
-      </div>
+    <AuthCard title="Could not open the login page" subtitle={problem}>
+      <Button className="w-full" size="lg" onClick={retry}>
+        {isRegister ? 'Create account with ELEFEZ FARM' : 'Log in with ELEFEZ FARM'}
+      </Button>
     </AuthCard>
   );
 }

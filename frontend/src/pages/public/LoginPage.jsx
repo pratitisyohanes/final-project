@@ -15,14 +15,9 @@ import SsoLogin from '../../components/SsoLogin';
 import Button from '../../components/ui/Button';
 import { Input } from '../../components/ui/FormField';
 
-const DEMO_ACCOUNTS = [
-  { label: 'Admin', email: 'admin@booking.com', password: 'Admin12345' },
-  { label: 'Customer', email: 'budi@example.com', password: 'User12345' },
-];
-
 // With single sign-on the password is typed on the KandangID page, not here
 export default function LoginPage() {
-  return isSsoEnabled ? <SsoLogin subtitle="Access your bookings or the admin panel." /> : <PasswordLoginPage />;
+  return isSsoEnabled ? <SsoLogin /> : <PasswordLoginPage />;
 }
 
 function PasswordLoginPage() {
@@ -35,7 +30,6 @@ function PasswordLoginPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     setError,
     formState: { errors },
   } = useForm({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } });
@@ -53,11 +47,6 @@ function PasswordLoginPage() {
   });
 
   const onSubmit = (values) => login.mutate(values, { onError: (error) => applyFieldErrors(error, setError) });
-
-  const fillDemo = (account) => {
-    setValue('email', account.email);
-    setValue('password', account.password);
-  };
 
   if (challenge) {
     return (
@@ -87,17 +76,6 @@ function PasswordLoginPage() {
           Log in
         </Button>
       </form>
-
-      <div className="mt-6 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-        <p className="font-medium text-slate-600">Demo accounts</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {DEMO_ACCOUNTS.map((account) => (
-            <button key={account.email} type="button" onClick={() => fillDemo(account)} className="rounded border border-slate-200 bg-white px-2 py-1 hover:border-brand-500">
-              {account.label}: {account.email}
-            </button>
-          ))}
-        </div>
-      </div>
     </AuthCard>
   );
 }
