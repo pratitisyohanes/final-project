@@ -4,7 +4,6 @@ import MainLayout from '../layouts/MainLayout';
 import ProtectedRoute from './ProtectedRoute';
 import GuestRoute from './GuestRoute';
 import { PageLoader } from '../components/ui/Spinner';
-import HomePage from '../pages/public/HomePage';
 import ServicesPage from '../pages/public/ServicesPage';
 import ServiceDetailPage from '../pages/public/ServiceDetailPage';
 import LoginPage from '../pages/public/LoginPage';
@@ -14,6 +13,9 @@ import { ForbiddenPage, NotFoundPage } from '../pages/public/StatusPages';
 import MyBookingsPage from '../pages/user/MyBookingsPage';
 import BookingDetailPage from '../pages/user/BookingDetailPage';
 import ProfilePage from '../pages/user/ProfilePage';
+
+// The home page is split off so the animation library only loads when it is visited
+const HomePage = lazy(() => import('../pages/public/HomePage'));
 
 // Admin pages are split into a separate bundle because customers never need them
 const AdminLayout = lazy(() => import('../layouts/AdminLayout'));
