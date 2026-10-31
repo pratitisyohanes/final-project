@@ -15,7 +15,7 @@ import { Input } from '../../components/ui/FormField';
 
 // With single sign-on the account is created on the KandangID page (it becomes an LDAP entry)
 export default function RegisterPage() {
-  return isSsoEnabled ? <SsoLogin mode="register" subtitle="Book site surveys, cage installation and repairs." /> : <PasswordRegisterPage />;
+  return isSsoEnabled ? <SsoLogin mode="register" /> : <PasswordRegisterPage />;
 }
 
 function PasswordRegisterPage() {

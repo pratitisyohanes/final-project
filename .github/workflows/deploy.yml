@@ -45,10 +45,13 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       # Same-origin API path: Nginx forwards /api to the backend, so no CORS is needed
+      # VITE_SSO_*: login goes through KandangID (sso-pro); booking-api must have AUTH_PROVIDER=sso and SSO_* set before this deploys
       - run: npm run build
         env:
           VITE_API_URL: /api/v1
           VITE_POS_URL: https://pos.pratitis.net
+          VITE_SSO_URL: https://sso.pratitis.net
+          VITE_SSO_CLIENT_ID: booking-web
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-dist

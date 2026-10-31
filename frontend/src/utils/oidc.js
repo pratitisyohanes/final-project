@@ -4,7 +4,22 @@ const SSO_URL = (import.meta.env.VITE_SSO_URL || '').replace(/\/+$/, '');
 const CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || '';
 const STORAGE_KEY = 'kandangid-login';
 
+// Loop guard for the automatic redirect on /login: if KandangID signs the user in but the API still refuses the token,
+// the browser would bounce between the two forever. After 3 starts within 30 seconds the login page stops and shows a button.
+const AUTO_START_KEY = 'kandangid-auto-starts';
+const AUTO_START_LIMIT = 3;
+const AUTO_START_WINDOW_MS = 30_000;
+
 export const isSsoEnabled = Boolean(SSO_URL && CLIENT_ID);
+
+// Records this automatic start and says whether it may go ahead
+export const allowAutoStart = () => {
+  const now = Date.now();
+  const recent = JSON.parse(sessionStorage.getItem(AUTO_START_KEY) || '[]').filter((time) => now - time < AUTO_START_WINDOW_MS);
+  recent.push(now);
+  sessionStorage.setItem(AUTO_START_KEY, JSON.stringify(recent));
+  return recent.length <= AUTO_START_LIMIT;
+};
 
 // Must match the redirect_uris registered with: npm run client:web (sso-pro)
 const redirectUri = () => `${window.location.origin}/login/callback`;
@@ -43,7 +58,8 @@ export const startLogin = async ({ returnTo = '/', prompt } = {}) => {
     ...(prompt && { prompt }),
   };
   Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-  window.location.assign(url.toString());
+  // replace() keeps /login out of the history, so the back button does not send the browser straight to KandangID again
+  window.location.replace(url.toString());
 };
 
 const tokenRequest = async (params) => {
