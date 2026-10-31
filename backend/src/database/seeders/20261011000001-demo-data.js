@@ -10,15 +10,15 @@ const categories = ['Site Survey', 'Cage Installation', 'Maintenance & Repair', 
 
 // capacity = field teams available per slot; slots run 09:00-17:00, so duration sets the slot count
 const services = [
-  { category: 'Site Survey', name: 'Coop Site Survey', imageUrl: '/services/coop-site-survey.svg', price: 150000, durationMinutes: 120, capacity: 2, description: 'Visit the farm, measure the land and plan the layer coop layout.' },
-  { category: 'Cage Installation', name: 'Battery Cage Installation (500 birds)', imageUrl: '/services/battery-cage-500.svg', price: 1500000, durationMinutes: 240, capacity: 1, description: 'Assemble and install battery cages for up to 500 laying hens.' },
-  { category: 'Cage Installation', name: 'Battery Cage Installation (1,000 birds)', imageUrl: '/services/battery-cage-1000.svg', price: 2750000, durationMinutes: 480, capacity: 1, description: 'Full-day installation of battery cages for up to 1,000 laying hens.' },
-  { category: 'Maintenance & Repair', name: 'Cage Repair & Maintenance', imageUrl: '/services/cage-repair.svg', price: 250000, durationMinutes: 120, capacity: 2, description: 'Fix bent wire, egg trays and doors, then check every cage row.' },
-  { category: 'Maintenance & Repair', name: 'Nipple Drinker System Setup', imageUrl: '/services/nipple-drinker.svg', price: 350000, durationMinutes: 120, capacity: 2, description: 'Install or replace nipple drinker lines and the water regulator.' },
-  { category: 'Flock Health', name: 'Layer Vaccination Visit', imageUrl: '/services/layer-vaccination.svg', price: 200000, durationMinutes: 90, capacity: 2, description: 'On-farm vaccination for laying hens by a poultry health officer.' },
-  { category: 'Consultation', name: 'Layer Farm Consultation', imageUrl: '/services/layer-consultation.svg', price: 100000, durationMinutes: 60, capacity: 3, description: 'One on one advice on feed, lighting and egg production.' },
+  { category: 'Site Survey', name: 'Coop Site Survey', imageUrl: '/service-images/coop-site-survey.svg', price: 150000, durationMinutes: 120, capacity: 2, description: 'Visit the farm, measure the land and plan the layer coop layout.' },
+  { category: 'Cage Installation', name: 'Battery Cage Installation (500 birds)', imageUrl: '/service-images/battery-cage-500.svg', price: 1500000, durationMinutes: 240, capacity: 1, description: 'Assemble and install battery cages for up to 500 laying hens.' },
+  { category: 'Cage Installation', name: 'Battery Cage Installation (1,000 birds)', imageUrl: '/service-images/battery-cage-1000.svg', price: 2750000, durationMinutes: 480, capacity: 1, description: 'Full-day installation of battery cages for up to 1,000 laying hens.' },
+  { category: 'Maintenance & Repair', name: 'Cage Repair & Maintenance', imageUrl: '/service-images/cage-repair.svg', price: 250000, durationMinutes: 120, capacity: 2, description: 'Fix bent wire, egg trays and doors, then check every cage row.' },
+  { category: 'Maintenance & Repair', name: 'Nipple Drinker System Setup', imageUrl: '/service-images/nipple-drinker.svg', price: 350000, durationMinutes: 120, capacity: 2, description: 'Install or replace nipple drinker lines and the water regulator.' },
+  { category: 'Flock Health', name: 'Layer Vaccination Visit', imageUrl: '/service-images/layer-vaccination.svg', price: 200000, durationMinutes: 90, capacity: 2, description: 'On-farm vaccination for laying hens by a poultry health officer.' },
+  { category: 'Consultation', name: 'Layer Farm Consultation', imageUrl: '/service-images/layer-consultation.svg', price: 100000, durationMinutes: 60, capacity: 3, description: 'One on one advice on feed, lighting and egg production.' },
   // Appended last so existing service ids stay the same; pos-pro links its cages to this one by id
-  { category: 'Cage Installation', name: 'Battery Cage Installation (up to 50 birds)', imageUrl: '/services/battery-cage-50.svg', price: 250000, durationMinutes: 120, capacity: 2, description: 'Assemble and install a small set of battery cages for up to 50 laying hens.' },
+  { category: 'Cage Installation', name: 'Battery Cage Installation (up to 50 birds)', imageUrl: '/service-images/battery-cage-50.svg', price: 250000, durationMinutes: 120, capacity: 2, description: 'Assemble and install a small set of battery cages for up to 50 laying hens.' },
 ];
 
 // [customerIndex, serviceIndex, dayOffset, slotIndex, finalStatus]
